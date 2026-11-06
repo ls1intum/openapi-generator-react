@@ -70,6 +70,9 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
     /** Generator name used by the OpenAPI Generator SPI and CLI. */
     public static final String GENERATOR_NAME = "react-query";
 
+    /** Config option: start the hooks files with {@code 'use client'}, for frameworks with React Server Components. */
+    public static final String USE_CLIENT_DIRECTIVE = "useClientDirective";
+
     /** The key of the request body in a {@code params} object. */
     private static final String BODY_KEY = "body";
 
@@ -104,6 +107,9 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
         typeMapping.put("file", "Blob");
         typeMapping.put("File", "Blob");
 
+        cliOptions.add(CliOption.newBoolean(USE_CLIENT_DIRECTIVE,
+                "Start the hooks files with the 'use client' directive, for React Server Components", false));
+
         // The parent offers an option for each of these; the generated code does not use them.
         cliOptions.removeIf(option -> Set.of("supportsES6", "npmName", "npmVersion", "snapshot").contains(option.getOpt()));
     }
@@ -136,6 +142,7 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
         supportingFiles.add(new SupportingFile("api-index.mustache", api, "index.ts"));
         supportingFiles.add(new SupportingFile("models-index.mustache", models, "index.ts"));
         supportingFiles.add(new SupportingFile("root-index.mustache", "", "index.ts"));
+        additionalProperties.put(USE_CLIENT_DIRECTIVE, Boolean.parseBoolean(String.valueOf(additionalProperties.getOrDefault(USE_CLIENT_DIRECTIVE, "false"))));
         additionalProperties.put("apiPackageName", apiPackage());
         additionalProperties.put("modelPackageName", modelPackage());
     }
@@ -334,6 +341,7 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
         OperationMap operations = result.getOperations();
         List<CodegenOperation> ops = operations.getOperation();
         boolean hasQueries = false;
+        boolean hasSkippableQueries = false;
         boolean hasMutations = false;
         boolean hasQueryParams = false;
         Set<String> apiTypes = new TreeSet<>();
@@ -347,6 +355,8 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
             }
             hasQueryParams |= !op.queryParams.isEmpty();
             hasQueries |= Boolean.TRUE.equals(op.vendorExtensions.get("x-is-query"));
+            hasSkippableQueries |= Boolean.TRUE.equals(op.vendorExtensions.get("x-is-query"))
+                    && Boolean.TRUE.equals(op.vendorExtensions.get("x-has-params"));
             hasMutations |= Boolean.TRUE.equals(op.vendorExtensions.get("x-is-mutation"));
             apiTypes.addAll(TypeScriptSnippets.referencedModels(op.returnType, knownModels));
             for (Object member : (List<?>) op.vendorExtensions.get("x-members")) {
@@ -376,7 +386,12 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
                 if (Boolean.TRUE.equals(op.vendorExtensions.get("x-has-params"))) {
                     hookParamTypes.add((String) op.vendorExtensions.get("x-params-name"));
                 }
-                hookOptionNames.add(isQuery ? "QueryHookOptions" : "MutationHookOptions");
+                if (isQuery) {
+                    hookOptionNames.add("QueryHookOptions");
+                    hookOptionNames.add("SuspenseQueryHookOptions");
+                } else {
+                    hookOptionNames.add("MutationHookOptions");
+                }
             }
         }
 
@@ -392,16 +407,22 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
         }
         result.put("hasDeprecatedHooks", hasDeprecatedHooks);
 
+        // In the order of the sorted import specifiers.
         List<String> tanstackImports = new ArrayList<>();
         if (hasQueries) {
             tanstackImports.add("queryOptions");
+        }
+        if (hasSkippableQueries) {
+            tanstackImports.add("skipToken");
         }
         if (hasMutations) {
             tanstackImports.add("useMutation");
         }
         if (hasQueries) {
             tanstackImports.add("useQuery");
+            tanstackImports.add("useSuspenseQuery");
         }
+        result.put("hasSkippableQueries", hasSkippableQueries);
         result.put("tanstackImports", String.join(", ", tanstackImports));
         result.put("apiImports", apiTypes.stream().map(ReactQueryGenerator::tsImport).toList());
         result.put("hookImports", hookTypes.stream().map(ReactQueryGenerator::tsImport).toList());
@@ -472,6 +493,7 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
 
         op.vendorExtensions.put("x-function-name", function);
         op.vendorExtensions.put("x-hook-name", "use" + Names.toPascalCase(function));
+        op.vendorExtensions.put("x-hook-name-suspense", "useSuspense" + Names.toPascalCase(function));
         op.vendorExtensions.put("x-params-name", Names.toPascalCase(function) + "Params");
         op.vendorExtensions.put("x-has-params", !members.isEmpty());
         op.vendorExtensions.put("x-params-optional", allOptional);

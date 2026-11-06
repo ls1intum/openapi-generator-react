@@ -23,7 +23,8 @@ class GeneratedCodeCompilesTest {
     private static final Map<String, Consumer<CodegenConfigurator>> OPTION_SETS = Map.of(
             "defaults", configurator -> { },
             "model-affixes", configurator -> configurator.addAdditionalProperty("modelNamePrefix", "Api")
-                    .addAdditionalProperty("modelNameSuffix", "Model"));
+                    .addAdditionalProperty("modelNameSuffix", "Model"),
+            "use-client", configurator -> configurator.addAdditionalProperty("useClientDirective", "true"));
 
     @TempDir
     Path tempDir;
@@ -39,9 +40,11 @@ class GeneratedCodeCompilesTest {
             String name = spec.getFileName().toString().replace("-openapi.yaml", "");
             OPTION_SETS.forEach((options, properties) -> Generation.generate(spec, tempDir.resolve(name).resolve(options), properties));
         }
+        // How an application uses the generated example, compiled and linted with it.
+        Files.copy(Generation.TYPESCRIPT.resolve("usage.tsx"), tempDir.resolve("example/defaults/usage.tsx"));
         Generation.linkNodeModules(tempDir);
         Files.writeString(tempDir.resolve("tsconfig.json"), """
-                { "extends": "%s", "include": ["**/*.ts"], "exclude": ["node_modules"] }
+                { "extends": "%s", "include": ["**/*.ts", "**/*.tsx"], "exclude": ["node_modules"] }
                 """.formatted(Generation.TYPESCRIPT.resolve("tsconfig.json")));
 
         // TypeScript 6, which the pinned types and the linters of most projects use, and the native TypeScript 7.

@@ -1,8 +1,14 @@
 {{>licenseInfo}}
-{{#hasDeprecatedHooks}}
+{{#useClientDirective}}
+'use client';
+
+{{/useClientDirective}}{{#hasDeprecatedHooks}}
 /* eslint-disable @typescript-eslint/no-deprecated -- the hooks of a deprecated operation call it */
 {{/hasDeprecatedHooks}}
 import { {{{tanstackImports}}} } from '@tanstack/react-query';
+{{#hasSkippableQueries}}
+import type { SkipToken } from '@tanstack/react-query';
+{{/hasSkippableQueries}}
 {{#hookImports}}
 import type { {{classname}} } from '../{{modelPackageName}}/{{filename}}';
 {{/hookImports}}
@@ -33,7 +39,7 @@ export function {{vendorExtensions.x-function-name}}QueryKey({{#vendorExtensions
 }
 
 /**
- * The query options of {@link {{vendorExtensions.x-function-name}}}, for `useQuery`, `prefetchQuery` and the other functions of the query client.
+ * The query options of {@link {{vendorExtensions.x-function-name}}}, for `queryClient.query` and the other functions of the query client.
 {{#isDeprecated}}
  *
  * @deprecated
@@ -47,14 +53,42 @@ export function {{vendorExtensions.x-function-name}}QueryOptions({{#vendorExtens
 }
 
 /**
- * Runs {@link {{vendorExtensions.x-function-name}}} as a query.
+ * Runs {@link {{vendorExtensions.x-function-name}}} as a query.{{#vendorExtensions.x-has-params}} Pass `skipToken` as the arguments to wait for them without fetching.{{/vendorExtensions.x-has-params}} `select` may return a part of the data, so that the component renders again only when that part changes.
 {{#isDeprecated}}
  *
  * @deprecated
 {{/isDeprecated}}
  */
-export function {{vendorExtensions.x-hook-name}}({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}}{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}, {{/vendorExtensions.x-has-params}}options?: QueryHookOptions<{{{vendorExtensions.x-return-type}}}>) {
-    return useQuery<{{{vendorExtensions.x-return-type}}}, ApiError>({ ...{{vendorExtensions.x-function-name}}QueryOptions({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}}), ...options });
+export function {{vendorExtensions.x-hook-name}}<TSelected = {{{vendorExtensions.x-return-type}}}>({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}} | SkipToken{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}, {{/vendorExtensions.x-has-params}}options?: QueryHookOptions<{{{vendorExtensions.x-return-type}}}, TSelected>) {
+{{#vendorExtensions.x-has-params}}
+    return useQuery<{{{vendorExtensions.x-return-type}}}, ApiError, TSelected>({
+        queryKey: params === skipToken ? [...{{queryKeyName}}, '{{vendorExtensions.x-function-name}}'] : {{vendorExtensions.x-function-name}}QueryKey(params),
+        queryFn: params === skipToken ? skipToken : ({ signal }) => {{vendorExtensions.x-function-name}}(params, { signal }),
+        ...options,
+    });
+{{/vendorExtensions.x-has-params}}
+{{^vendorExtensions.x-has-params}}
+    return useQuery<{{{vendorExtensions.x-return-type}}}, ApiError, TSelected>({
+        queryKey: {{vendorExtensions.x-function-name}}QueryKey(),
+        queryFn: ({ signal }) => {{vendorExtensions.x-function-name}}({ signal }),
+        ...options,
+    });
+{{/vendorExtensions.x-has-params}}
+}
+
+/**
+ * Runs {@link {{vendorExtensions.x-function-name}}} as a query that suspends the component until the data is there, for `<Suspense>` and error boundaries.
+{{#isDeprecated}}
+ *
+ * @deprecated
+{{/isDeprecated}}
+ */
+export function {{vendorExtensions.x-hook-name-suspense}}<TSelected = {{{vendorExtensions.x-return-type}}}>({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}}{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}, {{/vendorExtensions.x-has-params}}options?: SuspenseQueryHookOptions<{{{vendorExtensions.x-return-type}}}, TSelected>) {
+    return useSuspenseQuery<{{{vendorExtensions.x-return-type}}}, ApiError, TSelected>({
+        queryKey: {{vendorExtensions.x-function-name}}QueryKey({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}}),
+        queryFn: ({ signal }) => {{vendorExtensions.x-function-name}}({{#vendorExtensions.x-has-params}}params, {{/vendorExtensions.x-has-params}}{ signal }),
+        ...options,
+    });
 }
 {{/vendorExtensions.x-is-query}}
 {{#vendorExtensions.x-is-mutation}}

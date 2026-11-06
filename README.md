@@ -17,8 +17,8 @@ supported yet and fail the generation with a clear message, see [Not supported y
   `const` object.
 - **One function per operation**, with one `params` argument that holds the path, query and header parameters and the
   `body`. It returns the parsed response and throws an `ApiError` for an error status.
-- **A query hook for every GET**: `useGetProject`, plus `getProjectQueryOptions` and `getProjectQueryKey` for
-  prefetching and cache access.
+- **A query hook for every GET**: `useGetProject`, a suspense hook `useSuspenseGetProject` for `<Suspense>` and error
+  boundaries, and `getProjectQueryOptions` and `getProjectQueryKey` for prefetching, loaders and cache access.
 - **A mutation hook for every POST, PUT, PATCH and DELETE**: `useCreateProject`.
 - **No runtime dependency** besides `@tanstack/react-query` (version 5) and React. The `fetch` client is generated into
   your project, so you can read it, and `configureApi` sets the base path, credentials and headers once.
@@ -113,6 +113,25 @@ export function useCreateRequest(options?: MutationHookOptions<AccessRequest, Cr
     });
 }
 ```
+
+Made for React:
+
+- **`select`** may return another type, so a component can subscribe to a part of the data and render again only when
+  that part changes: `useListProjects({}, { select: (projects) => projects.length })` is typed `number | undefined`.
+- **`skipToken`** as the arguments waits for them without a placeholder and without `enabled`:
+  `useGetProject(projectId === undefined ? skipToken : { projectId })`.
+- **Suspense** hooks return data that is always there, and `getProjectQueryOptions` plugs into route loaders and
+  `queryClient.query`.
+- **Stable, serializable keys**: the arguments object is part of the key, so equal arguments share one cache entry
+  whatever the identity of the object, and a new object per render costs nothing.
+- **Immutable types** (`readonly` everywhere) match how React state is updated, and a mutable object is assignable
+  to them.
+- **No re-renders from the client itself**: it has no state, no context and no provider. TanStack Query renders again
+  only for the fields a component reads.
+- **React Compiler and the rules of hooks**: the generated hooks pass `eslint-plugin-react-hooks` with the compiler
+  rules; the tests lint them.
+- **`useClientDirective`** (default `false`) starts the hooks files with `'use client'`, for Next.js and other
+  frameworks with React Server Components. The plain functions in `*-api.ts` need no directive and work on the server.
 
 Every query key starts with the key of its tag (`requestsQueryKey`), then the operation name and the arguments, so
 `queryClient.invalidateQueries({ queryKey: requestsQueryKey })` refetches everything of a tag, and
@@ -233,7 +252,11 @@ git diff --exit-code -- client/src/api-client
 
 ## Configuration
 
-The generator has no options of its own yet. The standard ones of the OpenAPI Generator apply, among them
+| Option | Default | Description |
+| --- | --- | --- |
+| `useClientDirective` | `false` | Start the hooks files with `'use client'` |
+
+The standard options of the OpenAPI Generator apply as well, among them
 `modelNamePrefix`, `modelNameSuffix`, `apiPackage` (default `api`), `modelPackage` (default `models`),
 `typeMappings` and `nameMappings`.
 
@@ -253,6 +276,7 @@ Not covered by a failure, and different from what you may expect:
 - A `oneOf` schema that declares properties of its own becomes the union of its branches without them, and a schema that
   extends a `oneOf` schema with `allOf` is generated without its parent. Both log a warning.
 - There is no `useInfiniteQuery` hook yet, and a POST that only reads (a search) becomes a mutation.
+- A mutation hook does not invalidate or update the cache; pass `onSuccess` and use the query keys of the tag.
 - The response type of an operation is that of its first 2xx response, and error responses are not typed: `ApiError.body` is `unknown`.
 
 ## Building from source

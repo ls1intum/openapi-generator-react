@@ -1,9 +1,18 @@
 {{>licenseInfo}}
-import type { UseMutationOptions, UseQueryOptions } from '@tanstack/react-query';
+import type { UseMutationOptions, UseQueryOptions, UseSuspenseQueryOptions } from '@tanstack/react-query';
 import type { ApiError } from './client';
 
-/** The options a query hook accepts: everything of `useQuery` except the key and the function the hook sets itself. */
-export type QueryHookOptions<TData> = Omit<UseQueryOptions<TData, ApiError>, 'queryKey' | 'queryFn'>;
+/**
+ * The options a query hook accepts: everything of `useQuery` except the key and the function the hook sets itself.
+ * `select` may return another type, `TSelected`, to subscribe a component to a part of the data.
+ */
+export type QueryHookOptions<TData, TSelected = TData> = Omit<UseQueryOptions<TData, ApiError, TSelected>, 'queryKey' | 'queryFn'>;
+
+/** The options a suspense query hook accepts: those of `useSuspenseQuery` except the key and the function. */
+export type SuspenseQueryHookOptions<TData, TSelected = TData> = Omit<
+    UseSuspenseQueryOptions<TData, ApiError, TSelected>,
+    'queryKey' | 'queryFn'
+>;
 
 /** The options a mutation hook accepts: everything of `useMutation` except the function the hook sets itself. */
 export type MutationHookOptions<TData, TVariables> = Omit<UseMutationOptions<TData, ApiError, TVariables>, 'mutationFn'>;

@@ -1,5 +1,6 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, skipToken } from '@tanstack/react-query';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -12,6 +13,7 @@ import {
     useCreateProject,
     useGetProject,
     useGetMe,
+    useSuspenseGetProject,
     useListProjects,
     useWithdrawRequest,
 } from '@generated/example/api';
@@ -62,6 +64,65 @@ describe('a query hook', () => {
         expect(result.current.data).toEqual([{ id: 'a' }]);
     });
 
+    it('lets select return another type, and renders again only when the selected part changes', async () => {
+        json([{ id: 'a' }]);
+        const { client, wrapper } = setUp();
+        let renders = 0;
+
+        const { result } = renderHook(
+            () => {
+                renders += 1;
+                const { data } = useListProjects({}, { select: (projects) => projects.length });
+                return data;
+            },
+            { wrapper },
+        );
+        await waitFor(() => expect(result.current).toBe(1));
+        const rendersAfterLoad = renders;
+        // A refetch with the same count does not render again.
+        json([{ id: 'b' }]);
+        await act(async () => {
+            await client.invalidateQueries({ queryKey: projectsQueryKey });
+        });
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(renders).toBe(rendersAfterLoad);
+    });
+
+    it('waits for its arguments while they are the skipToken, and fetches when they arrive', async () => {
+        json({ id: 'atlas', name: 'Atlas', organization: 'ls1intum', maxMonths: 12 });
+        const { wrapper } = setUp();
+
+        const { result, rerender } = renderHook(
+            ({ projectId }: { projectId: string | undefined }) => {
+                const { data, fetchStatus } = useGetProject(projectId === undefined ? skipToken : { projectId });
+                return { data, fetchStatus };
+            },
+            { wrapper, initialProps: { projectId: undefined as string | undefined } },
+        );
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(result.current.fetchStatus).toBe('idle');
+
+        rerender({ projectId: 'atlas' });
+
+        await waitFor(() => expect(result.current.data?.name).toBe('Atlas'));
+        expect(String(fetchMock.mock.calls[0]?.[0])).toBe('/api/projects/atlas');
+    });
+
+    it('suspends until the data is there', async () => {
+        json({ id: 'atlas', name: 'Atlas', organization: 'ls1intum', maxMonths: 12 });
+        const { client } = setUp();
+        const wrapper = ({ children }: { children: ReactNode }) => (
+            <QueryClientProvider client={client}>
+                <Suspense fallback={null}>{children}</Suspense>
+            </QueryClientProvider>
+        );
+
+        const { result } = renderHook(() => useSuspenseGetProject({ projectId: 'atlas' }), { wrapper });
+
+        await waitFor(() => expect(result.current.data.name).toBe('Atlas'));
+    });
+
     it('does not fetch while it is disabled', () => {
         const { wrapper } = setUp();
 
@@ -98,11 +159,11 @@ describe('the query keys', () => {
         expect(listProjectsQueryKey()).toEqual(['projects', 'listProjects', {}]);
     });
 
-    it('can be prefetched through the query options', async () => {
+    it('can be fetched through the query options', async () => {
         json({ id: 'atlas', name: 'Atlas', organization: 'ls1intum', maxMonths: 12 });
         const { client } = setUp();
 
-        await client.prefetchQuery(getProjectQueryOptions({ projectId: 'atlas' }));
+        await client.query(getProjectQueryOptions({ projectId: 'atlas' }));
 
         expect(client.getQueryData(getProjectQueryKey({ projectId: 'atlas' }))).toMatchObject({ name: 'Atlas' });
     });
