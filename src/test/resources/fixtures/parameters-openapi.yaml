@@ -1,0 +1,55 @@
+openapi: 3.0.3
+info: {title: Parameters, version: 1.0.0}
+paths:
+  /things/{id}:
+    get:
+      tags: [Things]
+      operationId: getThing
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+        - {name: id, in: query, schema: {type: string}}
+        - {name: body, in: query, schema: {type: string}}
+        - {name: delete, in: query, schema: {type: string}}
+        - {name: page-size, in: query, schema: {type: integer}}
+        - {name: tags, in: query, schema: {type: array, items: {type: string}}}
+        - {name: ids, in: query, style: pipeDelimited, explode: false, schema: {type: array, items: {type: integer}}}
+        - {name: filter, in: query, style: deepObject, explode: true, schema: {type: object, properties: {name: {type: string}, min: {type: integer}}}}
+        - {name: X-Trace-Id, in: header, schema: {type: string}}
+        - {name: X-Tenant, in: header, required: true, schema: {type: string}}
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Thing'}}}}
+  /things/{count}/{enabled}:
+    get:
+      tags: [Things]
+      operationId: getByNumber
+      parameters:
+        - {name: count, in: path, required: true, schema: {type: integer}}
+        - {name: enabled, in: path, required: true, schema: {type: boolean}}
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Thing'}}}}
+  /things:
+    get:
+      tags: [Things]
+      operationId: listThings
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Thing'}}}}}
+    post:
+      tags: [Things]
+      operationId: createThing
+      requestBody:
+        required: false
+        content: {application/json: {schema: {$ref: '#/components/schemas/Thing'}}}
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Thing'}}}}
+    delete:
+      tags: [Things]
+      operationId: clearThings
+      responses:
+        '204': {description: gone}
+components:
+  schemas:
+    Thing:
+      type: object
+      required: [id]
+      properties:
+        id: {type: string}

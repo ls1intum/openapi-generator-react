@@ -1,0 +1,47 @@
+{{>licenseInfo}}
+{{#models}}
+{{#model}}
+{{#vendorExtensions.x-has-imports}}
+
+{{#vendorExtensions.x-imports}}
+import type { {{classname}} } from './{{filename}}';
+{{/vendorExtensions.x-imports}}
+{{/vendorExtensions.x-has-imports}}
+
+{{#description}}
+/**
+ * {{{.}}}
+ */
+{{/description}}
+{{#vendorExtensions.x-is-one-of}}
+export type {{classname}} = {{{vendorExtensions.x-one-of-type}}};
+{{/vendorExtensions.x-is-one-of}}
+{{^vendorExtensions.x-is-one-of}}
+{{#isEnum}}
+export type {{classname}} = {{#allowableValues}}{{#enumVars}}{{{value}}}{{^-last}} | {{/-last}}{{/enumVars}}{{/allowableValues}};
+
+export const {{classname}} = {
+{{#allowableValues}}{{#enumVars}}    {{name}}: {{{value}}},
+{{/enumVars}}{{/allowableValues}}} as const;
+{{/isEnum}}
+{{^isEnum}}
+{{#hasVars}}
+export interface {{classname}}{{#parent}} extends {{.}}{{/parent}} {
+{{#vars}}
+{{>modelProperty}}
+{{/vars}}
+}
+{{#hasEnums}}
+
+{{#vars}}
+{{>modelPropertyEnum}}
+{{/vars}}
+{{/hasEnums}}
+{{/hasVars}}
+{{^hasVars}}
+export type {{classname}} = Record<string, unknown>;
+{{/hasVars}}
+{{/isEnum}}
+{{/vendorExtensions.x-is-one-of}}
+{{/model}}
+{{/models}}

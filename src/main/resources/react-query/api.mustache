@@ -1,0 +1,70 @@
+{{>licenseInfo}}
+{{#apiImports}}
+import type { {{classname}} } from '../{{modelPackageName}}/{{filename}}';
+{{/apiImports}}
+import { request } from './client';
+import type { RequestOptions } from './client';
+{{#operations}}
+{{#hasQueryParams}}
+import { appendQueryParam } from './query-params';
+{{/hasQueryParams}}
+
+{{#operation}}
+{{#vendorExtensions.x-has-params}}
+/** The arguments of {@link {{vendorExtensions.x-function-name}}}. */
+export interface {{vendorExtensions.x-params-name}} {
+{{#vendorExtensions.x-members}}
+{{#hasDoc}}
+    /** {{{doc}}} */
+{{/hasDoc}}
+    readonly {{{key}}}{{#optional}}?{{/optional}}: {{{type}}}{{#optional}} | undefined{{/optional}};
+{{/vendorExtensions.x-members}}
+}
+
+{{/vendorExtensions.x-has-params}}
+{{#vendorExtensions.x-has-doc}}
+{{#vendorExtensions.x-doc-single}}
+/** {{{vendorExtensions.x-doc-first}}} */
+{{/vendorExtensions.x-doc-single}}
+{{^vendorExtensions.x-doc-single}}
+/**
+{{#vendorExtensions.x-doc-lines}}
+{{{.}}}
+{{/vendorExtensions.x-doc-lines}}
+ */
+{{/vendorExtensions.x-doc-single}}
+{{/vendorExtensions.x-has-doc}}
+export function {{vendorExtensions.x-function-name}}({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}}{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}, {{/vendorExtensions.x-has-params}}options?: RequestOptions): Promise<{{{vendorExtensions.x-return-type}}}> {
+{{#vendorExtensions.x-has-query}}
+    const query = new URLSearchParams();
+{{#vendorExtensions.x-query-lines}}
+    {{{.}}}
+{{/vendorExtensions.x-query-lines}}
+{{/vendorExtensions.x-has-query}}
+{{#vendorExtensions.x-has-headers}}
+    const headers = new Headers();
+{{#vendorExtensions.x-header-lines}}
+    {{{.}}}
+{{/vendorExtensions.x-header-lines}}
+{{/vendorExtensions.x-has-headers}}
+    return request<{{{vendorExtensions.x-return-type}}}>(
+        {
+            method: '{{httpMethod}}',
+            path: {{{vendorExtensions.x-path}}},
+{{#vendorExtensions.x-has-query}}
+            query,
+{{/vendorExtensions.x-has-query}}
+{{#vendorExtensions.x-has-headers}}
+            headers,
+{{/vendorExtensions.x-has-headers}}
+{{#vendorExtensions.x-has-body}}
+            body: params.body,
+{{/vendorExtensions.x-has-body}}
+            responseType: {{{vendorExtensions.x-response-type}}},
+        },
+        options,
+    );
+}
+
+{{/operation}}
+{{/operations}}

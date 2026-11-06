@@ -1,0 +1,10 @@
+openapi: 3.0.3
+info: {title: Simple style in a query, version: 1.0.0}
+paths:
+  /things:
+    get:
+      operationId: listThings
+      parameters:
+        - {name: ids, in: query, style: simple, schema: {type: array, items: {type: string}}}
+      responses:
+        '200': {description: ok}

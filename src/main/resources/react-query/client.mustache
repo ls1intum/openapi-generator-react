@@ -1,0 +1,116 @@
+{{>licenseInfo}}
+/** What the client needs to send a request. Change it once at start-up with {@link configureApi}. */
+export interface ApiConfig {
+    /** Put in front of every path, e.g. `/api`. */
+    readonly basePath: string;
+    /** Whether the browser sends cookies; `same-origin` unless the API runs on another origin. */
+    readonly credentials: RequestCredentials;
+    /** Headers to add to every request, called per request, e.g. a CSRF token read from a cookie. */
+    readonly headers: () => HeadersInit | undefined;
+    /** The `fetch` to call; the global one, looked up per request, unless set. */
+    readonly fetch: typeof globalThis.fetch | undefined;
+}
+
+let config: ApiConfig = {
+    basePath: '{{{basePath}}}',
+    credentials: 'same-origin',
+    headers: () => undefined,
+    fetch: undefined,
+};
+
+/** Replaces the given parts of the client configuration. */
+export function configureApi(changes: Partial<ApiConfig>): void {
+    config = { ...config, ...changes };
+}
+
+/** Per-call options of every operation function. */
+export interface RequestOptions {
+    /** Aborts the request; the query hooks pass the signal of TanStack Query. */
+    readonly signal?: AbortSignal;
+    /** Headers of this call; they win over the configured headers. */
+    readonly headers?: HeadersInit;
+}
+
+/** Thrown for a response with a status outside 200 to 299. */
+export class ApiError extends Error {
+    /** The response, with its body already read into {@link body}. */
+    readonly response: Response;
+    /** The JSON of the error response, its text when it is not JSON, or undefined when it has no body. */
+    readonly body: unknown;
+
+    constructor(response: Response, body: unknown) {
+        super(`${response.status} ${response.statusText}`.trim());
+        this.name = 'ApiError';
+        this.response = response;
+        this.body = body;
+    }
+
+    get status(): number {
+        return this.response.status;
+    }
+}
+
+/** How {@link request} reads the response body. */
+export type ResponseType = 'json' | 'text' | 'blob' | 'void';
+
+/** One request as an operation function describes it. */
+export interface ApiCall {
+    readonly method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS' | 'TRACE';
+    /** The path without the base path, with its path parameters filled in. */
+    readonly path: string;
+    readonly query?: URLSearchParams;
+    readonly headers?: Headers;
+    /** Sent as JSON when it is not undefined. */
+    readonly body?: unknown;
+    readonly responseType: ResponseType;
+}
+
+/** Sends a request and returns the parsed response; every operation function calls it. Throws {@link ApiError} for an error status. */
+export async function request<T>(call: ApiCall, options: RequestOptions = {}): Promise<T> {
+    const query = call.query?.toString();
+    const url = `${config.basePath}${call.path}${query ? `?${query}` : ''}`;
+
+    const headers = new Headers(config.headers());
+    call.headers?.forEach((value, name) => headers.set(name, value));
+    new Headers(options.headers).forEach((value, name) => headers.set(name, value));
+    if (call.responseType === 'json' && !headers.has('Accept')) {
+        headers.set('Accept', 'application/json');
+    }
+    if (call.body !== undefined && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+    }
+
+    const send = config.fetch ?? globalThis.fetch;
+    const response = await send(url, {
+        method: call.method,
+        headers,
+        body: call.body === undefined ? null : JSON.stringify(call.body),
+        credentials: config.credentials,
+        signal: options.signal ?? null,
+    });
+
+    if (!response.ok) {
+        throw new ApiError(response, await readErrorBody(response));
+    }
+    if (call.responseType === 'void' || response.status === 204 || response.status === 205) {
+        return undefined as T;
+    }
+    switch (call.responseType) {
+        case 'json':
+            return (await response.json()) as T;
+        case 'text':
+            return (await response.text()) as T;
+        case 'blob':
+            return (await response.blob()) as T;
+    }
+}
+
+async function readErrorBody(response: Response): Promise<unknown> {
+    try {
+        const isJson = /json/i.test(response.headers.get('Content-Type') ?? '');
+        const text = await response.text();
+        return isJson && text ? (JSON.parse(text) as unknown) : text || undefined;
+    } catch {
+        return undefined;
+    }
+}

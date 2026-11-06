@@ -1,0 +1,10 @@
+openapi: 3.0.3
+info: {title: Cookie, version: 1.0.0}
+paths:
+  /me:
+    get:
+      operationId: getMe
+      parameters:
+        - {name: session, in: cookie, schema: {type: string}}
+      responses:
+        '200': {description: ok}

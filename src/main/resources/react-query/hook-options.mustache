@@ -1,0 +1,9 @@
+{{>licenseInfo}}
+import type { UseMutationOptions, UseQueryOptions } from '@tanstack/react-query';
+import type { ApiError } from './client';
+
+/** The options a query hook accepts: everything of `useQuery` except the key and the function the hook sets itself. */
+export type QueryHookOptions<TData> = Omit<UseQueryOptions<TData, ApiError>, 'queryKey' | 'queryFn'>;
+
+/** The options a mutation hook accepts: everything of `useMutation` except the function the hook sets itself. */
+export type MutationHookOptions<TData, TVariables> = Omit<UseMutationOptions<TData, ApiError, TVariables>, 'mutationFn'>;

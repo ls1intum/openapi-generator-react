@@ -1,0 +1,279 @@
+openapi: 3.0.3
+info:
+  title: Lanyard
+  description: Time-limited access to GitHub projects. A reduced version of the API, as an example for the generator.
+  version: 0.1.0
+servers:
+  - url: /api
+tags:
+  - name: Me
+  - name: Projects
+  - name: Requests
+paths:
+  /me:
+    get:
+      tags: [Me]
+      operationId: getMe
+      summary: Returns the signed-in person.
+      responses:
+        '200':
+          description: The person.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+  /projects:
+    get:
+      tags: [Projects]
+      operationId: listProjects
+      summary: Lists the projects that take requests.
+      parameters:
+        - name: organization
+          in: query
+          description: Only the projects of this organization.
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: One page of projects.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+    post:
+      tags: [Projects]
+      operationId: createProject
+      summary: Creates a project.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+      responses:
+        '201':
+          description: The new project.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+  /projects/{projectId}:
+    get:
+      tags: [Projects]
+      operationId: getProject
+      summary: Returns one project.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The project.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          description: There is no such project.
+  /projects/{projectId}/requests:
+    get:
+      tags: [Requests]
+      operationId: listRequests
+      summary: Lists the requests of a project.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Only requests in one of these states.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/RequestStatus'
+      responses:
+        '200':
+          description: The requests.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccessRequest'
+    post:
+      tags: [Requests]
+      operationId: createRequest
+      summary: Asks for access to a project.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessRequestCreate'
+      responses:
+        '201':
+          description: The new request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequest'
+  /requests/{requestId}/decision:
+    put:
+      tags: [Requests]
+      operationId: decideRequest
+      summary: Approves or rejects a request.
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Decision'
+      responses:
+        '200':
+          description: The decided request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequest'
+  /requests/{requestId}:
+    delete:
+      tags: [Requests]
+      operationId: withdrawRequest
+      summary: Withdraws a request that is still open.
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: The request is gone.
+  /projects/{projectId}/members.csv:
+    get:
+      tags: [Projects]
+      operationId: exportMembers
+      summary: Exports the members of a project as CSV.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The CSV file.
+          content:
+            text/csv:
+              schema:
+                type: string
+components:
+  schemas:
+    Person:
+      type: object
+      required: [tumId, name, roles]
+      properties:
+        tumId:
+          type: string
+          description: The TUM ID, e.g. ge12abc.
+        name:
+          type: string
+        githubLogin:
+          type: string
+          nullable: true
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [LANYARD_ADMIN]
+    Project:
+      type: object
+      required: [id, name, organization, maxMonths]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        organization:
+          type: string
+        maxMonths:
+          type: integer
+          description: The longest access a request may ask for.
+    ProjectCreate:
+      type: object
+      required: [name, organization]
+      properties:
+        name:
+          type: string
+        organization:
+          type: string
+    RequestStatus:
+      type: string
+      enum: [OPEN, APPROVED, REJECTED, WITHDRAWN]
+    AccessRequest:
+      type: object
+      required: [id, projectId, status, requestedUntil]
+      properties:
+        id:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+        status:
+          $ref: '#/components/schemas/RequestStatus'
+        requestedUntil:
+          type: string
+          format: date
+        decidedAt:
+          type: string
+          format: date-time
+    AccessRequestCreate:
+      type: object
+      required: [requestedUntil]
+      properties:
+        requestedUntil:
+          type: string
+          format: date
+        reason:
+          type: string
+    Decision:
+      type: object
+      required: [approved]
+      properties:
+        approved:
+          type: boolean
+        until:
+          type: string
+          format: date
+        rejectionReason:
+          type: string

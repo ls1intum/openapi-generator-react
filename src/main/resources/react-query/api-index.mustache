@@ -1,0 +1,13 @@
+{{>licenseInfo}}
+export * from './client';
+export type * from './hook-options';
+{{#apiInfo}}
+{{#apis}}
+export * from './{{classFilename}}-api';
+{{#operations}}
+{{#hasHooks}}
+export * from './{{classFilename}}-hooks';
+{{/hasHooks}}
+{{/operations}}
+{{/apis}}
+{{/apiInfo}}

@@ -1,0 +1,12 @@
+openapi: 3.0.3
+info: {title: Text body, version: 1.0.0}
+paths:
+  /note:
+    put:
+      operationId: putNote
+      requestBody:
+        content:
+          text/plain:
+            schema: {type: string}
+      responses:
+        '200': {description: ok}

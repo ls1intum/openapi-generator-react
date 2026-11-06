@@ -1,0 +1,96 @@
+openapi: 3.0.3
+info: {title: Responses, version: 1.0.0}
+paths:
+  /plain:
+    get:
+      operationId: getPlain
+      responses:
+        '200': {description: ok, content: {text/plain: {schema: {type: string}}}}
+  /json-string:
+    get:
+      operationId: getJsonString
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {type: string}}}}
+  /file:
+    get:
+      operationId: downloadFile
+      responses:
+        '200': {description: ok, content: {application/pdf: {schema: {type: string, format: binary}}}}
+  /nothing:
+    get:
+      operationId: getNothing
+      responses:
+        '204': {description: nothing}
+  /count:
+    get:
+      operationId: getCount
+      deprecated: true
+      summary: Counts things.
+      description: |
+        Counts all things.
+
+        A second paragraph, with a closing */ in it.
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {type: integer}}}}
+  /shapes:
+    get:
+      operationId: getShape
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Shape'}}}}
+  /dogs:
+    get:
+      operationId: getDog
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Dog'}}}}
+  /bag:
+    get:
+      operationId: getBag
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Bag'}}}}
+components:
+  schemas:
+    Circle:
+      type: object
+      required: [type, radius]
+      properties:
+        type: {type: string, enum: [circle]}
+        radius: {type: number}
+    Square:
+      type: object
+      required: [type, side]
+      properties:
+        type: {type: string, enum: [square]}
+        side: {type: number}
+    Shape:
+      oneOf:
+        - $ref: '#/components/schemas/Circle'
+        - $ref: '#/components/schemas/Square'
+        - type: string
+    Animal:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string}
+    Dog:
+      allOf:
+        - $ref: '#/components/schemas/Animal'
+        - type: object
+          required: [good]
+          properties:
+            good: {type: boolean}
+            name: {type: string}
+    Bag:
+      type: object
+      required: [kind]
+      properties:
+        kind: {type: string, enum: [SMALL, LARGE, 'extra-large', '2xl']}
+        weight: {type: number, nullable: true}
+        'x-y': {type: string}
+        final: {type: boolean}
+        labels: {type: object, additionalProperties: {type: string}}
+        extra: {type: object}
+        anything: {}
+        tags: {type: array, uniqueItems: true, items: {type: string}}
+        modes: {type: array, items: {type: string, enum: [A, B]}}
+        child: {$ref: '#/components/schemas/Bag'}
+        when: {type: string, format: date-time}

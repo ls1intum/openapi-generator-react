@@ -1,0 +1,16 @@
+openapi: 3.0.3
+info: {title: Name clash, version: 1.0.0}
+paths:
+  /projects:
+    post:
+      operationId: createProject
+      parameters:
+        - {name: dryRun, in: query, schema: {type: boolean}}
+      responses:
+        '200': {description: ok}
+components:
+  schemas:
+    CreateProjectParams:
+      type: object
+      properties:
+        name: {type: string}
