@@ -230,9 +230,9 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
                     property.vendorExtensions.put("x-property-name", TypeScriptSnippets.toPropertyKey(property.baseName));
                     // unknown already includes null.
                     property.vendorExtensions.put("x-nullable", property.isNullable && !"unknown".equals(property.dataType));
-                    referenced.add(property.dataType);
-                    if (property.items != null) {
-                        referenced.add(property.items.dataType);
+                    // The parent's model of a oneOf schema also holds the properties of its branches, which the union does not use.
+                    if (!isUnion(model)) {
+                        referenced.add(property.dataType);
                     }
                 }
                 Set<String> imports = new TreeSet<>();
@@ -261,13 +261,29 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
                 // Only numbers and booleans are bare literals; a string with a format, such as a date, needs quotes too.
                 branch._enum.forEach(value -> members.add(branch.isNumeric || branch.isBoolean ? value : TypeScriptSnippets.stringLiteral(value)));
             } else {
-                members.add(branch.dataType);
+                members.add(refersToItself(model, branch.dataType) ? asIndexSignature(branch.dataType) : branch.dataType);
             }
         }
         if (model.isNullable) {
             members.add("null");
         }
         return String.join(" | ", members);
+    }
+
+    private static boolean refersToItself(CodegenModel model, String type) {
+        return TypeScriptSnippets.referencedModels(type, Set.of(model.classname)).contains(model.classname);
+    }
+
+    /**
+     * Writes {@code Readonly<Record<string, T>>} as an object type with an index signature. A union that contains
+     * itself through a {@code Record} does not compile (TS2456), because a type alias cannot be resolved through a
+     * generic type alias, but it can through an object type.
+     */
+    private static String asIndexSignature(String type) {
+        String prefix = "Readonly<Record<string, ";
+        return type.startsWith(prefix) && type.endsWith(">>")
+                ? "{ readonly [key: string]: " + type.substring(prefix.length(), type.length() - 2) + " }"
+                : type;
     }
 
     /** Copies the properties a {@code oneOf} root declares itself; the parent's model also holds those of its branches. */
@@ -434,8 +450,7 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
             Map<String, Object> member = member(keys, param);
             members.add(member);
             String access = "params." + member.get("key");
-            String value = param.isArray ? access + ".join(',')" : param.isString ? access : "String(" + access + ")";
-            String set = "headers.set(" + TypeScriptSnippets.stringLiteral(param.baseName) + ", " + value + ");";
+            String set = "headers.set(" + TypeScriptSnippets.stringLiteral(param.baseName) + ", " + TypeScriptSnippets.headerValue(param, access) + ");";
             headerLines.add(param.required ? set : "if (" + access + " !== undefined) {\n        " + set + "\n    }");
         }
         if (op.bodyParam != null) {

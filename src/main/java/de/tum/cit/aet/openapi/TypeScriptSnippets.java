@@ -4,7 +4,6 @@
  */
 package de.tum.cit.aet.openapi;
 
-import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import org.openapitools.codegen.CodegenOperation;
 import org.openapitools.codegen.CodegenParameter;
 
@@ -164,9 +163,50 @@ final class TypeScriptSnippets {
         return IDENTIFIER.matcher(jsonKey).matches() ? jsonKey : stringLiteral(jsonKey);
     }
 
-    /** Returns a single-quoted TypeScript string literal for a string from the spec, such as a wire name. */
+    /**
+     * Returns a single-quoted TypeScript string literal for a string from the spec, such as a wire name. Only what a
+     * single-quoted literal needs is escaped, so the result passes {@code no-useless-escape}.
+     */
     static String stringLiteral(String value) {
-        return "'" + new String(JsonStringEncoder.getInstance().quoteAsString(value)).replace("'", "\\'") + "'";
+        StringBuilder literal = new StringBuilder("'");
+        for (char character : value.toCharArray()) {
+            switch (character) {
+                case '\\' -> literal.append("\\\\");
+                case '\'' -> literal.append("\\'");
+                case '\n' -> literal.append("\\n");
+                case '\r' -> literal.append("\\r");
+                case '\t' -> literal.append("\\t");
+                case '\b' -> literal.append("\\b");
+                case '\f' -> literal.append("\\f");
+                case '\u2028', '\u2029' -> literal.append(String.format("\\u%04x", (int) character));
+                default -> {
+                    if (character < 0x20) {
+                        literal.append(String.format("\\u%04x", (int) character));
+                    } else {
+                        literal.append(character);
+                    }
+                }
+            }
+        }
+        return literal.append('\'').toString();
+    }
+
+    /**
+     * Returns the expression that serializes a header value in OpenAPI's default simple style: a collection as its
+     * items joined with commas, an object as its keys and values joined with commas ({@code R,100,G,200}, or
+     * {@code R=100,G=200} with {@code explode}), a string as it is and anything else with {@code String()}.
+     */
+    static String headerValue(CodegenParameter param, String value) {
+        if (param.isArray) {
+            return value + ".join(',')";
+        }
+        if (param.isMap || param.isModel || param.isFreeFormObject) {
+            boolean stringValues = param.items != null && param.items.isString;
+            return param.isExplode
+                    ? "Object.entries(" + value + ").map(([key, entry]) => `${key}=${" + (stringValues ? "entry" : "String(entry)") + "}`).join(',')"
+                    : "Object.entries(" + value + ").flat().join(',')";
+        }
+        return param.isString ? value : "String(" + value + ")";
     }
 
     /** Splits a description into the lines of a doc comment, keeping {@code *}{@code /} from ending the comment early. */

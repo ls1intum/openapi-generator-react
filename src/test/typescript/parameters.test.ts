@@ -36,6 +36,22 @@ describe('parameters that share a name', () => {
         expect(sent().headers.get('X-Tenant')).toBe('tenant');
     });
 
+    it('writes headers of every shape in the simple style', async () => {
+        await getThing({
+            id: 'p',
+            xTenant: 'tenant',
+            xLimit: 5,
+            xFlags: ['a', 'b'],
+            xColors: { R: 100, G: 200 },
+            xSizes: { small: 's', large: 'l' },
+        });
+
+        expect(sent().headers.get('X-Limit')).toBe('5');
+        expect(sent().headers.get('X-Flags')).toBe('a,b');
+        expect(sent().headers.get('X-Colors')).toBe('R,100,G,200');
+        expect(sent().headers.get('X-Sizes')).toBe('small=s,large=l');
+    });
+
     it('leaves out an optional header that is not set', async () => {
         await getThing({ id: 'p', xTenant: 'tenant' });
 

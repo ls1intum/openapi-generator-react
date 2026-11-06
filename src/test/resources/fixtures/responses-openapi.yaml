@@ -42,6 +42,21 @@ paths:
       operationId: getDog
       responses:
         '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Dog'}}}}
+  /json:
+    get:
+      operationId: getJson
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/JsonValue'}}}}
+  /questions:
+    get:
+      operationId: getQuestion
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Question'}}}}
+  /escapes:
+    get:
+      operationId: getEscapes
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Escapes'}}}}
   /bag:
     get:
       operationId: getBag
@@ -94,3 +109,40 @@ components:
         modes: {type: array, items: {type: string, enum: [A, B]}}
         child: {$ref: '#/components/schemas/Bag'}
         when: {type: string, format: date-time}
+    # A union that contains itself, through an array and through a map.
+    JsonValue:
+      oneOf:
+        - type: string
+        - type: number
+        - type: array
+          items: {$ref: '#/components/schemas/JsonValue'}
+        - type: object
+          additionalProperties: {$ref: '#/components/schemas/JsonValue'}
+    # The parent's model of a oneOf schema holds the properties of its branches, which the union does not import.
+    Choice:
+      type: object
+      required: [label]
+      properties:
+        label: {type: string}
+    Quiz:
+      type: object
+      required: [type, choices]
+      properties:
+        type: {type: string, enum: [quiz]}
+        choices: {type: array, items: {$ref: '#/components/schemas/Choice'}}
+    Essay:
+      type: object
+      required: [type]
+      properties:
+        type: {type: string, enum: [essay]}
+    Question:
+      oneOf:
+        - $ref: '#/components/schemas/Quiz'
+        - $ref: '#/components/schemas/Essay'
+    Escapes:
+      type: object
+      properties:
+        "it's": {type: string}
+        "back\\slash": {type: string}
+        "line\nbreak": {type: string}
+        "tab\tand \"quote\"": {type: string}

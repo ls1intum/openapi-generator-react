@@ -1,0 +1,8 @@
+openapi: 3.0.3
+info: {title: No models, version: 1.0.0}
+paths:
+  /ping:
+    get:
+      operationId: ping
+      responses:
+        '200': {description: ok, content: {text/plain: {schema: {type: string}}}}
