@@ -61,6 +61,9 @@ val installTypeScript by tasks.registering(Exec::class) {
 tasks.test {
     useJUnitPlatform()
     dependsOn(installTypeScript)
+    // The tests generate the example and run the TypeScript tests, so a change to either must run them again.
+    inputs.dir("example")
+    inputs.files(fileTree("src/test/typescript") { exclude("node_modules/**") })
 }
 
 tasks.withType<Jar> {

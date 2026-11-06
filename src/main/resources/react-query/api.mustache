@@ -2,7 +2,7 @@
 {{#apiImports}}
 import type { {{classname}} } from '../{{modelPackageName}}/{{filename}}{{importExt}}';
 {{/apiImports}}
-import { request } from './client{{importExt}}';
+import { ApiError, request } from './client{{importExt}}';
 import type { RequestOptions } from './client{{importExt}}';
 {{#operations}}
 {{#hasQueryParams}}
@@ -22,6 +22,14 @@ export interface {{vendorExtensions.x-params-name}} {
 }
 
 {{/vendorExtensions.x-has-params}}
+/** What {@link {{vendorExtensions.x-function-name}}} throws for a response with an error status. */
+export type {{vendorExtensions.x-error-name}} = {{{vendorExtensions.x-error-type}}};
+
+/** Tells whether something that {@link {{vendorExtensions.x-function-name}}} threw is a {@link {{vendorExtensions.x-error-name}}}; it looks at the class only, and trusts the API description for the body. */
+export function {{vendorExtensions.x-error-guard}}(error: unknown): error is {{vendorExtensions.x-error-name}} {
+    return error instanceof ApiError;
+}
+
 {{#vendorExtensions.x-has-doc}}
 {{#vendorExtensions.x-doc-single}}
 /** {{{vendorExtensions.x-doc-first}}} */

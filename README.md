@@ -176,18 +176,18 @@ export function listRequestsQueryKey(params: ListRequestsParams) {
 }
 
 export function listRequestsQueryOptions(params: ListRequestsParams) {
-    return queryOptions<readonly AccessRequest[], ApiError>({
+    return queryOptions<readonly AccessRequest[], ListRequestsError>({
         queryKey: listRequestsQueryKey(params),
         queryFn: ({ signal }) => listRequests(params, { signal }),
     });
 }
 
-export function useListRequests(params: ListRequestsParams, options?: QueryHookOptions<readonly AccessRequest[]>) {
-    return useQuery<readonly AccessRequest[], ApiError>({ ...listRequestsQueryOptions(params), ...options });
+export function useListRequests(params: ListRequestsParams, options?: QueryHookOptions<readonly AccessRequest[], ListRequestsError>) {
+    return useQuery<readonly AccessRequest[], ListRequestsError>({ ...listRequestsQueryOptions(params), ...options });
 }
 
-export function useCreateRequest(options?: MutationHookOptions<AccessRequest, CreateRequestParams>) {
-    return useMutation<AccessRequest, ApiError, CreateRequestParams>({
+export function useCreateRequest(options?: MutationHookOptions<AccessRequest, CreateRequestParams, CreateRequestError>) {
+    return useMutation<AccessRequest, CreateRequestError, CreateRequestParams>({
         mutationFn: (params) => createRequest(params),
         ...options,
     });
@@ -222,7 +222,7 @@ without the key and the function it sets itself.
 
 ```tsx
 import { useQueryClient } from '@tanstack/react-query';
-import { ApiError, configureApi, projectsQueryKey, useCreateProject, useGetProject } from './api-client';
+import { configureApi, projectsQueryKey, useCreateProject, useGetProject } from './api-client';
 
 // Once, at start-up.
 configureApi({ basePath: '/api', credentials: 'include', headers: () => ({ 'X-CSRF-Token': readCsrfToken() }) });
@@ -235,13 +235,38 @@ function ProjectPage({ projectId }: { projectId: string }) {
     });
 
     if (project.isPending) return <Spinner />;
-    if (project.error instanceof ApiError && project.error.status === 404) return <NotFound />;
+    if (project.error?.status === 404) return <NotFound />;
     return <h1>{project.data?.name}</h1>;
 }
 ```
 
 `ApiError` has the `status`, the `response` and the `body`: the parsed JSON of the error response, its text when it is
 not JSON, or `undefined`.
+
+### Errors
+
+The error of a hook, such as `project.error` above, is typed. For each operation the generated file holds the type of
+what it throws and a guard for code that catches the error itself:
+
+```ts
+// What getProject throws for an error status; the body is a Problem when the response is JSON.
+export type GetProjectError = ApiError<Problem>;
+export function isGetProjectError(error: unknown): error is GetProjectError;
+
+try {
+    await getProject({ projectId });
+} catch (caught) {
+    if (isGetProjectError(caught) && typeof caught.body === 'object') {
+        showMessage(caught.body.title); // typed: a Problem
+    }
+}
+```
+
+The body type is the union of the schemas that the operation declares for its error responses (`4XX`, `5XX`, a status
+code, or `default` when there is also a 2xx response). Without one, the error is a plain `ApiError` and the body is
+`unknown`. The type comes from the API description: the guard checks the class, not the shape of the body, so a gateway
+that answers with its own page gives a `string`, which the type allows (`TBody | string | undefined`).
+`isApiError(error)` narrows any error of the client to `ApiError`.
 
 ### The client and query parameters
 
@@ -407,7 +432,7 @@ Not covered by a failure, and different from what you may expect:
   extends a `oneOf` schema with `allOf` is generated without its parent. Both log a warning.
 - There is no `useInfiniteQuery` hook yet, and a POST that only reads (a search) becomes a mutation.
 - A mutation hook does not invalidate or update the cache; pass `onSuccess` and use the query keys of the tag.
-- The response type of an operation is that of its first 2xx response, and error responses are not typed: `ApiError.body` is `unknown`.
+- The response type of an operation is that of its first 2xx response. The type of an error does not depend on the status: it is the union of the declared error bodies.
 
 ## Building from source
 

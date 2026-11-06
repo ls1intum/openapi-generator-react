@@ -1,0 +1,62 @@
+openapi: 3.0.3
+info: {title: Errors, version: 1.0.0}
+paths:
+  /things/{id}:
+    get:
+      operationId: getThing
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Thing'}}}}
+        '404': {description: missing, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
+  /things:
+    post:
+      operationId: createThing
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: '#/components/schemas/Thing'}}}
+      responses:
+        '201': {description: created, content: {application/json: {schema: {$ref: '#/components/schemas/Thing'}}}}
+        '400': {description: invalid, content: {application/json: {schema: {$ref: '#/components/schemas/ValidationProblem'}}}}
+        '4XX': {description: other client error, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
+        default: {description: any other error, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
+  /things/{id}/archive:
+    post:
+      operationId: archiveThing
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        '204': {description: archived}
+        '409': {description: conflict}
+        default: {description: any error, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Problem'}}}}}
+  /plain:
+    get:
+      operationId: getPlain
+      responses:
+        '200': {description: ok, content: {text/plain: {schema: {type: string}}}}
+  /only-default:
+    get:
+      operationId: getOnlyDefault
+      responses:
+        default: {description: the only response, content: {application/json: {schema: {$ref: '#/components/schemas/Thing'}}}}
+components:
+  schemas:
+    Thing:
+      type: object
+      required: [id]
+      properties:
+        id: {type: string}
+    Problem:
+      type: object
+      required: [title, status]
+      properties:
+        title: {type: string}
+        status: {type: integer}
+    ValidationProblem:
+      type: object
+      required: [title, errors]
+      properties:
+        title: {type: string}
+        errors:
+          type: array
+          items: {type: string}

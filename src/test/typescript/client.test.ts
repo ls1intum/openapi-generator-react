@@ -6,6 +6,8 @@ import {
     exportMembers,
     getMe,
     getProject,
+    isApiError,
+    isGetProjectError,
     listProjects,
     withdrawRequest,
 } from '@generated/example/api';
@@ -160,6 +162,36 @@ describe('configureApi', () => {
         await getMe();
 
         expect(stub).toHaveBeenCalledOnce();
+    });
+});
+
+describe('the typed error of an operation', () => {
+    it('narrows what getProject threw and gives the declared body', async () => {
+        json({ title: 'Not Found', status: 404 }, { status: 404, statusText: 'Not Found', headers: { 'Content-Type': 'application/problem+json' } });
+
+        const error = await getProject({ projectId: 'missing' }).catch((caught: unknown) => caught);
+
+        expect(isGetProjectError(error)).toBe(true);
+        expect(isApiError(error)).toBe(true);
+        if (isGetProjectError(error) && typeof error.body === 'object') {
+            expect(error.body.title).toBe('Not Found');
+            expect(error.status).toBe(404);
+        } else {
+            expect.unreachable('the error is a GetProjectError with a JSON body');
+        }
+    });
+
+    it('does not take another kind of error for an ApiError', () => {
+        expect(isGetProjectError(new Error('network down'))).toBe(false);
+        expect(isApiError('404')).toBe(false);
+    });
+
+    it('leaves a body that is not JSON as text', async () => {
+        respond('Bad Gateway', { status: 502, headers: { 'Content-Type': 'text/html' } });
+
+        const error = await getProject({ projectId: 'a' }).catch((caught: unknown) => caught);
+
+        expect(isGetProjectError(error) && error.body).toBe('Bad Gateway');
     });
 });
 

@@ -380,12 +380,18 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
                 throw new IllegalArgumentException("Operation " + op.operationId + " has the arguments type " + paramsName
                         + ", which is also the name of a schema. Rename the operation or the schema, or set modelNameSuffix.");
             }
+            String errorName = (String) op.vendorExtensions.get("x-error-name");
+            if (knownModels.contains(errorName)) {
+                throw new IllegalArgumentException("Operation " + op.operationId + " has the error type " + errorName
+                        + ", which is also the name of a schema. Rename the operation or the schema, or set modelNameSuffix.");
+            }
             hasQueryParams |= !op.queryParams.isEmpty();
             hasQueries |= Boolean.TRUE.equals(op.vendorExtensions.get("x-is-query"));
             hasSkippableQueries |= Boolean.TRUE.equals(op.vendorExtensions.get("x-is-query"))
                     && Boolean.TRUE.equals(op.vendorExtensions.get("x-has-params"));
             hasMutations |= Boolean.TRUE.equals(op.vendorExtensions.get("x-is-mutation"));
             apiTypes.addAll(TypeScriptSnippets.referencedModels(op.returnType, knownModels));
+            apiTypes.addAll(TypeScriptSnippets.referencedModels((String) op.vendorExtensions.get("x-error-bodies"), knownModels));
             for (Object member : (List<?>) op.vendorExtensions.get("x-members")) {
                 apiTypes.addAll(TypeScriptSnippets.referencedModels((String) ((Map<?, ?>) member).get("type"), knownModels));
             }
@@ -413,6 +419,7 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
                 if (Boolean.TRUE.equals(op.vendorExtensions.get("x-has-params"))) {
                     hookParamTypes.add((String) op.vendorExtensions.get("x-params-name"));
                 }
+                hookParamTypes.add((String) op.vendorExtensions.get("x-error-name"));
                 if (isQuery) {
                     hookOptionNames.add("QueryHookOptions");
                     hookOptionNames.add("SuspenseQueryHookOptions");
@@ -526,6 +533,11 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
         op.vendorExtensions.put("x-params-optional", allOptional);
         op.vendorExtensions.put("x-members", members);
         op.vendorExtensions.put("x-return-type", returnType);
+        String errorBodies = TypeScriptSnippets.errorBodyTypes(op);
+        op.vendorExtensions.put("x-error-name", Names.toPascalCase(function) + "Error");
+        op.vendorExtensions.put("x-error-guard", "is" + Names.toPascalCase(function) + "Error");
+        op.vendorExtensions.put("x-error-bodies", errorBodies);
+        op.vendorExtensions.put("x-error-type", "unknown".equals(errorBodies) ? "ApiError" : "ApiError<" + errorBodies + ">");
         op.vendorExtensions.put("x-response-type", TypeScriptSnippets.stringLiteral(response.literal()));
         op.vendorExtensions.put("x-path", TypeScriptSnippets.buildPathLiteral(op, pathKeys));
         op.vendorExtensions.put("x-query-lines", queryLines);

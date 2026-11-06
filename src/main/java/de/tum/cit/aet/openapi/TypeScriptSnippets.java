@@ -6,9 +6,11 @@ package de.tum.cit.aet.openapi;
 
 import org.openapitools.codegen.CodegenOperation;
 import org.openapitools.codegen.CodegenParameter;
+import org.openapitools.codegen.CodegenResponse;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -113,6 +115,23 @@ final class TypeScriptSnippets {
             path = path.replace("{" + param.baseName + "}", "${" + (plain ? "String(" + access + ")" : "encodeURIComponent(" + access + ")") + "}");
         }
         return "`" + path.replace("`", "\\`") + "`";
+    }
+
+    /**
+     * Returns the TypeScript type of the bodies that the operation declares for its error responses, a union of the
+     * distinct types in the order of the responses, or {@code unknown} when it declares none. The {@code default}
+     * response counts as an error only when the operation also has a 2xx response.
+     */
+    static String errorBodyTypes(CodegenOperation op) {
+        boolean hasSuccess = op.responses.stream().anyMatch(response -> response.is2xx);
+        Set<String> types = new LinkedHashSet<>();
+        for (CodegenResponse response : op.responses) {
+            boolean isError = !response.is1xx && !response.is2xx && !response.is3xx && (!response.isDefault || hasSuccess);
+            if (isError && !response.isVoid && response.dataType != null) {
+                types.add(response.dataType);
+            }
+        }
+        return types.isEmpty() ? "unknown" : String.join(" | ", types);
     }
 
     /** Collects the generated model names that a type expression refers to, such as {@code ReadonlyArray<Project>}. */

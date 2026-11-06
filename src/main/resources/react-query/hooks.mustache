@@ -16,7 +16,6 @@ import { {{{hookFunctions}}} } from './{{apiFileName}}-api{{importExt}}';
 {{#hasHookParamTypes}}
 import type { {{{hookParamTypes}}} } from './{{apiFileName}}-api{{importExt}}';
 {{/hasHookParamTypes}}
-import type { ApiError } from './client{{importExt}}';
 import type { {{{hookOptionNames}}} } from './hook-options{{importExt}}';
 {{#operations}}
 {{#hasQueries}}
@@ -46,7 +45,7 @@ export function {{vendorExtensions.x-function-name}}QueryKey({{#vendorExtensions
 {{/isDeprecated}}
  */
 export function {{vendorExtensions.x-function-name}}QueryOptions({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}}{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}{{/vendorExtensions.x-has-params}}) {
-    return queryOptions<{{{vendorExtensions.x-return-type}}}, ApiError>({
+    return queryOptions<{{{vendorExtensions.x-return-type}}}, {{vendorExtensions.x-error-name}}>({
         queryKey: {{vendorExtensions.x-function-name}}QueryKey({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}}),
         queryFn: ({ signal }) => {{vendorExtensions.x-function-name}}({{#vendorExtensions.x-has-params}}params, {{/vendorExtensions.x-has-params}}{ signal }),
     });
@@ -59,16 +58,16 @@ export function {{vendorExtensions.x-function-name}}QueryOptions({{#vendorExtens
  * @deprecated
 {{/isDeprecated}}
  */
-export function {{vendorExtensions.x-hook-name}}<TSelected = {{{vendorExtensions.x-return-type}}}>({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}} | SkipToken{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}, {{/vendorExtensions.x-has-params}}options?: QueryHookOptions<{{{vendorExtensions.x-return-type}}}, TSelected>) {
+export function {{vendorExtensions.x-hook-name}}<TSelected = {{{vendorExtensions.x-return-type}}}>({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}} | SkipToken{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}, {{/vendorExtensions.x-has-params}}options?: QueryHookOptions<{{{vendorExtensions.x-return-type}}}, {{vendorExtensions.x-error-name}}, TSelected>) {
 {{#vendorExtensions.x-has-params}}
-    return useQuery<{{{vendorExtensions.x-return-type}}}, ApiError, TSelected>({
+    return useQuery<{{{vendorExtensions.x-return-type}}}, {{vendorExtensions.x-error-name}}, TSelected>({
         queryKey: params === skipToken ? [...{{queryKeyName}}, '{{vendorExtensions.x-function-name}}'] : {{vendorExtensions.x-function-name}}QueryKey(params),
         queryFn: params === skipToken ? skipToken : ({ signal }) => {{vendorExtensions.x-function-name}}(params, { signal }),
         ...options,
     });
 {{/vendorExtensions.x-has-params}}
 {{^vendorExtensions.x-has-params}}
-    return useQuery<{{{vendorExtensions.x-return-type}}}, ApiError, TSelected>({
+    return useQuery<{{{vendorExtensions.x-return-type}}}, {{vendorExtensions.x-error-name}}, TSelected>({
         queryKey: {{vendorExtensions.x-function-name}}QueryKey(),
         queryFn: ({ signal }) => {{vendorExtensions.x-function-name}}({ signal }),
         ...options,
@@ -83,8 +82,8 @@ export function {{vendorExtensions.x-hook-name}}<TSelected = {{{vendorExtensions
  * @deprecated
 {{/isDeprecated}}
  */
-export function {{vendorExtensions.x-hook-name-suspense}}<TSelected = {{{vendorExtensions.x-return-type}}}>({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}}{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}, {{/vendorExtensions.x-has-params}}options?: SuspenseQueryHookOptions<{{{vendorExtensions.x-return-type}}}, TSelected>) {
-    return useSuspenseQuery<{{{vendorExtensions.x-return-type}}}, ApiError, TSelected>({
+export function {{vendorExtensions.x-hook-name-suspense}}<TSelected = {{{vendorExtensions.x-return-type}}}>({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}}{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}, {{/vendorExtensions.x-has-params}}options?: SuspenseQueryHookOptions<{{{vendorExtensions.x-return-type}}}, {{vendorExtensions.x-error-name}}, TSelected>) {
+    return useSuspenseQuery<{{{vendorExtensions.x-return-type}}}, {{vendorExtensions.x-error-name}}, TSelected>({
         queryKey: {{vendorExtensions.x-function-name}}QueryKey({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}}),
         queryFn: ({ signal }) => {{vendorExtensions.x-function-name}}({{#vendorExtensions.x-has-params}}params, {{/vendorExtensions.x-has-params}}{ signal }),
         ...options,
@@ -100,8 +99,8 @@ export function {{vendorExtensions.x-hook-name-suspense}}<TSelected = {{{vendorE
  * @deprecated
 {{/isDeprecated}}
  */
-export function {{vendorExtensions.x-hook-name}}(options?: MutationHookOptions<{{{vendorExtensions.x-return-type}}}, {{#vendorExtensions.x-has-params}}{{vendorExtensions.x-params-name}}{{/vendorExtensions.x-has-params}}{{^vendorExtensions.x-has-params}}void{{/vendorExtensions.x-has-params}}>) {
-    return useMutation<{{{vendorExtensions.x-return-type}}}, ApiError{{#vendorExtensions.x-has-params}}, {{vendorExtensions.x-params-name}}{{/vendorExtensions.x-has-params}}>({
+export function {{vendorExtensions.x-hook-name}}(options?: MutationHookOptions<{{{vendorExtensions.x-return-type}}}, {{#vendorExtensions.x-has-params}}{{vendorExtensions.x-params-name}}{{/vendorExtensions.x-has-params}}{{^vendorExtensions.x-has-params}}void{{/vendorExtensions.x-has-params}}, {{vendorExtensions.x-error-name}}>) {
+    return useMutation<{{{vendorExtensions.x-return-type}}}, {{vendorExtensions.x-error-name}}{{#vendorExtensions.x-has-params}}, {{vendorExtensions.x-params-name}}{{/vendorExtensions.x-has-params}}>({
         mutationFn: ({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}}) => {{vendorExtensions.x-function-name}}({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}}),
         ...options,
     });

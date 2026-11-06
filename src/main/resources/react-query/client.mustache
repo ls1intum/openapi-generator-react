@@ -31,14 +31,17 @@ export interface RequestOptions {
     readonly headers?: HeadersInit;
 }
 
-/** Thrown for a response with a status outside 200 to 299. */
-export class ApiError extends Error {
+/**
+ * Thrown for a response with a status outside 200 to 299. `TBody` is the type of the body that the API description
+ * declares for the error responses of an operation, see the `...Error` type of each operation function.
+ */
+export class ApiError<TBody = unknown> extends Error {
     /** The response, with its body already read into {@link body}. */
     readonly response: Response;
     /** The JSON of the error response, its text when it is not JSON, or undefined when it has no body. */
-    readonly body: unknown;
+    readonly body: TBody | string | undefined;
 
-    constructor(response: Response, body: unknown) {
+    constructor(response: Response, body: TBody | string | undefined) {
         super(`${String(response.status)} ${response.statusText}`.trim());
         this.name = 'ApiError';
         this.response = response;
@@ -48,6 +51,11 @@ export class ApiError extends Error {
     get status(): number {
         return this.response.status;
     }
+}
+
+/** Tells whether something that was thrown is an {@link ApiError}. The operation functions have guards that also type the body. */
+export function isApiError(error: unknown): error is ApiError {
+    return error instanceof ApiError;
 }
 
 /** How {@link request} reads the response body. */

@@ -47,6 +47,8 @@ class GeneratedCodeCompilesTest {
         Files.copy(Generation.TYPESCRIPT.resolve("usage.tsx"), tempDir.resolve("example/defaults/usage.tsx"));
         // What the types let a consumer do with a union.
         Files.copy(Generation.TYPESCRIPT.resolve("narrowing.ts"), tempDir.resolve("responses/defaults/narrowing.ts"));
+        // What the types of the errors let a consumer do.
+        Files.copy(Generation.TYPESCRIPT.resolve("error-types.ts"), tempDir.resolve("errors/defaults/error-types.ts"));
         Generation.linkNodeModules(tempDir);
         Files.writeString(tempDir.resolve("tsconfig.json"), """
                 { "extends": "%s", "include": ["**/*.ts", "**/*.tsx"], "exclude": ["node_modules"] }

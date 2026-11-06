@@ -89,6 +89,10 @@ paths:
                 $ref: '#/components/schemas/Project'
         '404':
           description: There is no such project.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /projects/{projectId}/requests:
     get:
       tags: [Requests]
@@ -199,6 +203,17 @@ paths:
                 type: string
 components:
   schemas:
+    Problem:
+      type: object
+      description: What the server answers for an error, as in RFC 9457.
+      required: [title, status]
+      properties:
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
     Person:
       type: object
       required: [tumId, name, roles]
