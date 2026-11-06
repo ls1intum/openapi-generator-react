@@ -15,11 +15,11 @@
 ## Coding style
 - Java 25, 4-space indentation, braces on the same line. Put logic in Java and keep the templates minimal: a template prints what a vendor extension holds.
 - A name that a template reads from an operation, a model or a property is a vendor extension that starts with `x-`.
-- The generated code is the product. It has to read like code a person wrote, with a doc comment for everything public, and it has to compile under `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` and `isolatedModules`. Check the output of a change, not only the tests.
+- The generated code is the product. It has to read like code a person wrote, with a doc comment for everything public, and it has to compile under `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax` and `isolatedModules` and pass typescript-eslint `strictTypeChecked` and `stylisticTypeChecked` without disable comments, except the ones the template adds itself where a rule cannot be met. Check the output of a change, not only the tests.
 - What the generator cannot produce correctly fails with an `IllegalArgumentException` that names the operation. Never emit code that does not work.
 
 ## Testing
-- Every feature has a fixture, and `GeneratedCodeCompilesTest` type-checks the output of all of them, also with `modelNamePrefix` and `modelNameSuffix` set.
+- Every feature has a fixture, and `GeneratedCodeCompilesTest` type-checks the output of all of them with TypeScript 6 and 7 and lints it with `src/test/typescript/eslint.config.mjs`, also with `modelNamePrefix` and `modelNameSuffix` set.
 - Behaviour of the generated client is tested in `src/test/typescript/*.test.ts(x)` through `GeneratedClientTest`, against a mocked `fetch`. `hooks.test.tsx` reads the fields it needs while rendering, because TanStack Query re-renders only for the fields a component read.
 - A spec that must fail generation goes into `src/test/resources/invalid` with a test in `UnsupportedSpecsTest`.
 

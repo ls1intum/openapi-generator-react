@@ -2,12 +2,11 @@
 {{#models}}
 {{#model}}
 {{#vendorExtensions.x-has-imports}}
-
 {{#vendorExtensions.x-imports}}
 import type { {{classname}} } from './{{filename}}';
 {{/vendorExtensions.x-imports}}
-{{/vendorExtensions.x-has-imports}}
 
+{{/vendorExtensions.x-has-imports}}
 {{#description}}
 /**
  * {{{.}}}
@@ -32,7 +31,6 @@ export interface {{classname}}{{#parent}} extends {{.}}{{/parent}} {
 {{/vars}}
 }
 {{#hasEnums}}
-
 {{#vars}}
 {{>modelPropertyEnum}}
 {{/vars}}

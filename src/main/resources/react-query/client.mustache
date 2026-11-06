@@ -39,7 +39,7 @@ export class ApiError extends Error {
     readonly body: unknown;
 
     constructor(response: Response, body: unknown) {
-        super(`${response.status} ${response.statusText}`.trim());
+        super(`${String(response.status)} ${response.statusText}`.trim());
         this.name = 'ApiError';
         this.response = response;
         this.body = body;
@@ -71,8 +71,12 @@ export async function request<T>(call: ApiCall, options: RequestOptions = {}): P
     const url = `${config.basePath}${call.path}${query ? `?${query}` : ''}`;
 
     const headers = new Headers(config.headers());
-    call.headers?.forEach((value, name) => headers.set(name, value));
-    new Headers(options.headers).forEach((value, name) => headers.set(name, value));
+    call.headers?.forEach((value, name) => {
+        headers.set(name, value);
+    });
+    new Headers(options.headers).forEach((value, name) => {
+        headers.set(name, value);
+    });
     if (call.responseType === 'json' && !headers.has('Accept')) {
         headers.set('Accept', 'application/json');
     }

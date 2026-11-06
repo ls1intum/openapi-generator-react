@@ -13,7 +13,7 @@ supported yet and fail the generation with a clear message, see [Not supported y
 
 ## What you get
 
-- **Models** as `interface`s with `readonly` properties and `ReadonlyArray` collections. Enums are a union type plus a
+- **Models** as `interface`s with `readonly` properties and `readonly T[]` collections. Enums are a union type plus a
   `const` object.
 - **One function per operation**, with one `params` argument that holds the path, query and header parameters and the
   `body`. It returns the parsed response and throws an `ApiError` for an error status.
@@ -23,7 +23,8 @@ supported yet and fail the generation with a clear message, see [Not supported y
 - **No runtime dependency** besides `@tanstack/react-query` (version 5) and React. The `fetch` client is generated into
   your project, so you can read it, and `configureApi` sets the base path, credentials and headers once.
 - **Strict-mode safe**: the output type-checks with `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`,
-  `verbatimModuleSyntax` and `isolatedModules`, with TypeScript 6 and 7 (both are in the tests).
+  `verbatimModuleSyntax` and `isolatedModules`, with TypeScript 6 and 7, and passes the strict and stylistic type-checked
+  rules of typescript-eslint without exceptions. The tests check all of it.
 
 ## Generated code
 
@@ -50,7 +51,8 @@ export const RequestStatus = {
 } as const;
 ```
 
-A property that the spec marks `nullable` is typed `| null`. A `oneOf` schema becomes a union of its branches.
+A property that the spec marks `nullable` is typed `| null`. A `oneOf` schema becomes a union of its branches. A map is
+`Readonly<Record<string, T>>`. An operation whose response has no body resolves to `undefined`.
 
 ### Operation functions
 
@@ -59,14 +61,14 @@ A property that the spec marks `nullable` is typed `| null`. A `oneOf` schema be
 export interface ListRequestsParams {
     readonly projectId: string;
     /** Only requests in one of these states. */
-    readonly status?: ReadonlyArray<RequestStatus> | undefined;
+    readonly status?: readonly RequestStatus[] | undefined;
 }
 
 /** Lists the requests of a project. */
-export function listRequests(params: ListRequestsParams, options?: RequestOptions): Promise<ReadonlyArray<AccessRequest>> {
+export function listRequests(params: ListRequestsParams, options?: RequestOptions): Promise<readonly AccessRequest[]> {
     const query = new URLSearchParams();
     appendQueryParam(query, 'status', params.status);
-    return request<ReadonlyArray<AccessRequest>>(
+    return request<readonly AccessRequest[]>(
         {
             method: 'GET',
             path: `/projects/${encodeURIComponent(params.projectId)}/requests`,
@@ -94,14 +96,14 @@ export function listRequestsQueryKey(params: ListRequestsParams) {
 }
 
 export function listRequestsQueryOptions(params: ListRequestsParams) {
-    return queryOptions<ReadonlyArray<AccessRequest>, ApiError>({
+    return queryOptions<readonly AccessRequest[], ApiError>({
         queryKey: listRequestsQueryKey(params),
         queryFn: ({ signal }) => listRequests(params, { signal }),
     });
 }
 
-export function useListRequests(params: ListRequestsParams, options?: QueryHookOptions<ReadonlyArray<AccessRequest>>) {
-    return useQuery<ReadonlyArray<AccessRequest>, ApiError>({ ...listRequestsQueryOptions(params), ...options });
+export function useListRequests(params: ListRequestsParams, options?: QueryHookOptions<readonly AccessRequest[]>) {
+    return useQuery<readonly AccessRequest[], ApiError>({ ...listRequestsQueryOptions(params), ...options });
 }
 
 export function useCreateRequest(options?: MutationHookOptions<AccessRequest, CreateRequestParams>) {

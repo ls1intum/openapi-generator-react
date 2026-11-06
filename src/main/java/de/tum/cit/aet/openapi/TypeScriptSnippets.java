@@ -100,7 +100,7 @@ final class TypeScriptSnippets {
 
     /**
      * Builds the template literal of a request path from the path as the spec writes it: every {@code {name}} becomes
-     * an access to the parameter's key in {@code params}, URI-encoded unless the value is a number or a boolean.
+     * an access to the parameter's key in {@code params}, URI-encoded unless the value is a number or a boolean, which needs no encoding and goes through {@code String}.
      */
     static String buildPathLiteral(CodegenOperation op, Map<String, String> keysByParameter) {
         String path = op.path;
@@ -111,7 +111,7 @@ final class TypeScriptSnippets {
             String access = "params." + keysByParameter.get(param.baseName);
             boolean plain = Boolean.TRUE.equals(param.isInteger) || Boolean.TRUE.equals(param.isNumber)
                     || Boolean.TRUE.equals(param.isBoolean) || "number".equals(param.dataType) || "boolean".equals(param.dataType);
-            path = path.replace("{" + param.baseName + "}", "${" + (plain ? access : "encodeURIComponent(" + access + ")") + "}");
+            path = path.replace("{" + param.baseName + "}", "${" + (plain ? "String(" + access + ")" : "encodeURIComponent(" + access + ")") + "}");
         }
         return "`" + path.replace("`", "\\`") + "`";
     }

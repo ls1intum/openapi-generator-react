@@ -1,4 +1,4 @@
 {{#description}}
     /** {{{.}}} */
 {{/description}}
-    readonly {{{vendorExtensions.x-property-name}}}{{^required}}?{{/required}}: {{#isEnum}}{{#isArray}}ReadonlyArray<{{classname}}{{enumName}}>{{/isArray}}{{^isArray}}{{classname}}{{enumName}}{{/isArray}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{#vendorExtensions.x-nullable}} | null{{/vendorExtensions.x-nullable}};
+    readonly {{{vendorExtensions.x-property-name}}}{{^required}}?{{/required}}: {{#isEnum}}{{#isArray}}readonly {{classname}}{{enumName}}[]{{/isArray}}{{^isArray}}{{classname}}{{enumName}}{{/isArray}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{#vendorExtensions.x-nullable}} | null{{/vendorExtensions.x-nullable}};

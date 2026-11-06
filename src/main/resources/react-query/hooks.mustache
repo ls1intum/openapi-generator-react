@@ -1,4 +1,7 @@
 {{>licenseInfo}}
+{{#hasDeprecatedHooks}}
+/* eslint-disable @typescript-eslint/no-deprecated -- the hooks of a deprecated operation call it */
+{{/hasDeprecatedHooks}}
 import { {{{tanstackImports}}} } from '@tanstack/react-query';
 {{#hookImports}}
 import type { {{classname}} } from '../{{modelPackageName}}/{{filename}}';
@@ -15,15 +18,27 @@ import type { {{{hookOptionNames}}} } from './hook-options';
 /** The start of the key of every query in {{classname}}; invalidate it to refetch them all. */
 export const {{queryKeyName}} = [{{{queryKeyValue}}}] as const;
 {{/hasQueries}}
-
 {{#operation}}
 {{#vendorExtensions.x-is-query}}
-/** The query key of {@link {{vendorExtensions.x-function-name}}} for these arguments. */
+
+/**
+ * The query key of {@link {{vendorExtensions.x-function-name}}} for these arguments.
+{{#isDeprecated}}
+ *
+ * @deprecated
+{{/isDeprecated}}
+ */
 export function {{vendorExtensions.x-function-name}}QueryKey({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}}{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}{{/vendorExtensions.x-has-params}}) {
     return [...{{queryKeyName}}, '{{vendorExtensions.x-function-name}}'{{#vendorExtensions.x-has-params}}, params{{/vendorExtensions.x-has-params}}] as const;
 }
 
-/** The query options of {@link {{vendorExtensions.x-function-name}}}, for `useQuery`, `prefetchQuery` and the other functions of the query client. */
+/**
+ * The query options of {@link {{vendorExtensions.x-function-name}}}, for `useQuery`, `prefetchQuery` and the other functions of the query client.
+{{#isDeprecated}}
+ *
+ * @deprecated
+{{/isDeprecated}}
+ */
 export function {{vendorExtensions.x-function-name}}QueryOptions({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}}{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}{{/vendorExtensions.x-has-params}}) {
     return queryOptions<{{{vendorExtensions.x-return-type}}}, ApiError>({
         queryKey: {{vendorExtensions.x-function-name}}QueryKey({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}}),
@@ -31,21 +46,32 @@ export function {{vendorExtensions.x-function-name}}QueryOptions({{#vendorExtens
     });
 }
 
-/** Runs {@link {{vendorExtensions.x-function-name}}} as a query. */
+/**
+ * Runs {@link {{vendorExtensions.x-function-name}}} as a query.
+{{#isDeprecated}}
+ *
+ * @deprecated
+{{/isDeprecated}}
+ */
 export function {{vendorExtensions.x-hook-name}}({{#vendorExtensions.x-has-params}}params: {{vendorExtensions.x-params-name}}{{#vendorExtensions.x-params-optional}} = {}{{/vendorExtensions.x-params-optional}}, {{/vendorExtensions.x-has-params}}options?: QueryHookOptions<{{{vendorExtensions.x-return-type}}}>) {
     return useQuery<{{{vendorExtensions.x-return-type}}}, ApiError>({ ...{{vendorExtensions.x-function-name}}QueryOptions({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}}), ...options });
 }
-
 {{/vendorExtensions.x-is-query}}
 {{#vendorExtensions.x-is-mutation}}
-/** Runs {@link {{vendorExtensions.x-function-name}}} as a mutation: call `mutate({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}})` to send the request. */
+
+/**
+ * Runs {@link {{vendorExtensions.x-function-name}}} as a mutation: call `mutate({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}})` to send the request.
+{{#isDeprecated}}
+ *
+ * @deprecated
+{{/isDeprecated}}
+ */
 export function {{vendorExtensions.x-hook-name}}(options?: MutationHookOptions<{{{vendorExtensions.x-return-type}}}, {{#vendorExtensions.x-has-params}}{{vendorExtensions.x-params-name}}{{/vendorExtensions.x-has-params}}{{^vendorExtensions.x-has-params}}void{{/vendorExtensions.x-has-params}}>) {
-    return useMutation<{{{vendorExtensions.x-return-type}}}, ApiError, {{#vendorExtensions.x-has-params}}{{vendorExtensions.x-params-name}}{{/vendorExtensions.x-has-params}}{{^vendorExtensions.x-has-params}}void{{/vendorExtensions.x-has-params}}>({
+    return useMutation<{{{vendorExtensions.x-return-type}}}, ApiError{{#vendorExtensions.x-has-params}}, {{vendorExtensions.x-params-name}}{{/vendorExtensions.x-has-params}}>({
         mutationFn: ({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}}) => {{vendorExtensions.x-function-name}}({{#vendorExtensions.x-has-params}}params{{/vendorExtensions.x-has-params}}),
         ...options,
     });
 }
-
 {{/vendorExtensions.x-is-mutation}}
 {{/operation}}
 {{/operations}}

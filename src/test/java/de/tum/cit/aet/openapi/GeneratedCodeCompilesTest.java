@@ -12,7 +12,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openapitools.codegen.config.CodegenConfigurator;
 
-/** Type-checks the generated code of every fixture, under the strictest compiler options a consumer may use. */
+/**
+ * Type-checks the generated code of every fixture under the strictest compiler options a consumer may use, and lints it
+ * with the strict and stylistic type-checked rules of typescript-eslint.
+ */
 class GeneratedCodeCompilesTest {
 
     private static final Path FIXTURES = Path.of("src/test/resources/fixtures");
@@ -46,5 +49,8 @@ class GeneratedCodeCompilesTest {
             NodeProcess.assertSucceeds(tempDir, Map.of(), "Generated code does not compile with " + compiler,
                     Generation.TYPESCRIPT.resolve("node_modules").resolve(compiler).resolve("bin/tsc").toString(), "-p", "tsconfig.json");
         }
+        NodeProcess.assertSucceeds(tempDir, Map.of(), "Generated code does not pass the lint rules",
+                Generation.TYPESCRIPT.resolve("node_modules/eslint/bin/eslint.js").toString(),
+                "--config", Generation.TYPESCRIPT.resolve("eslint.config.mjs").toString(), "--max-warnings", "0", ".");
     }
 }

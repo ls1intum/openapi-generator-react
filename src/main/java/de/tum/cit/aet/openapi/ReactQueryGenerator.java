@@ -5,6 +5,7 @@
 package de.tum.cit.aet.openapi;
 
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.parameters.Parameter;
 import org.openapitools.codegen.CliOption;
 import org.openapitools.codegen.CodegenModel;
 import org.openapitools.codegen.CodegenOperation;
@@ -144,20 +145,47 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
     // =============================================================================================
 
     /**
-     * Types a binary schema as {@code Blob}, which is what {@code Response.blob()} returns, and a map as an object with
-     * a readonly index signature, like the models.
+     * Types a binary schema as {@code Blob}, which is what {@code Response.blob()} returns, an array as
+     * {@code readonly T[]} and a map as {@code Readonly<Record<string, T>>}, like the models.
      */
     @Override
     public String getTypeDeclaration(Schema p) {
         if (ModelUtils.isFileSchema(p) || ModelUtils.isBinarySchema(p)) {
             return "Blob";
         }
+        if (ModelUtils.isArraySchema(p)) {
+            Schema<?> items = ModelUtils.getSchemaItems(p);
+            String nullable = Boolean.TRUE.equals(items.getNullable()) ? " | null" : "";
+            return readonlyArrayOf(getTypeDeclaration(unaliasSchema(items)) + nullable);
+        }
         if (ModelUtils.isMapSchema(p)) {
             Schema<?> inner = getSchemaAdditionalProperties(p);
             String nullable = Boolean.TRUE.equals(inner.getNullable()) ? " | null" : "";
-            return "{ readonly [key: string]: " + getTypeDeclaration(unaliasSchema(inner)) + nullable + " }";
+            return recordOf(getTypeDeclaration(unaliasSchema(inner)) + nullable);
         }
         return super.getTypeDeclaration(p);
+    }
+
+    /** Types the parameters that the parent types as {@code Array<T>} and {@code { [key: string]: T; }} the same way. */
+    @Override
+    protected String getParameterDataType(Parameter parameter, Schema p) {
+        if (ModelUtils.isArraySchema(p)) {
+            return readonlyArrayOf(getParameterDataType(parameter, ModelUtils.getSchemaItems(p)));
+        }
+        if (ModelUtils.isMapSchema(p)) {
+            return recordOf(getParameterDataType(parameter, ModelUtils.getAdditionalProperties(p)));
+        }
+        return super.getParameterDataType(parameter, p);
+    }
+
+    /** Writes an array type as {@code readonly T[]}, with parentheses where the item type needs them. */
+    private static String readonlyArrayOf(String item) {
+        boolean needsParentheses = item.contains(" | ") || item.contains(" & ") || item.startsWith("readonly ") || item.contains("=>");
+        return "readonly " + (needsParentheses ? "(" + item + ")" : item) + "[]";
+    }
+
+    private static String recordOf(String value) {
+        return "Readonly<Record<string, " + value + ">>";
     }
 
     // =============================================================================================
@@ -317,6 +345,8 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
             }
         }
 
+        boolean hasDeprecatedHooks = false;
+        CodegenOperation lastHook = null;
         List<String> hookFunctions = new ArrayList<>();
         List<String> hookParamTypes = new ArrayList<>();
         Set<String> hookOptionNames = new TreeSet<>();
@@ -324,6 +354,8 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
             boolean isQuery = Boolean.TRUE.equals(op.vendorExtensions.get("x-is-query"));
             boolean isMutation = Boolean.TRUE.equals(op.vendorExtensions.get("x-is-mutation"));
             if (isQuery || isMutation) {
+                lastHook = op;
+                hasDeprecatedHooks |= op.isDeprecated;
                 hookFunctions.add((String) op.vendorExtensions.get("x-function-name"));
                 if (Boolean.TRUE.equals(op.vendorExtensions.get("x-has-params"))) {
                     hookParamTypes.add((String) op.vendorExtensions.get("x-params-name"));
@@ -339,6 +371,11 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
         result.put("hasQueryParams", hasQueryParams);
         result.put("queryKeyName", Names.toCamelCase(Names.toKebabCase(tagName)) + "QueryKey");
         result.put("queryKeyValue", TypeScriptSnippets.stringLiteral(Names.toCamelCase(Names.toKebabCase(tagName))));
+        if (lastHook != null) {
+            lastHook.vendorExtensions.put("x-is-last-hook", true);
+        }
+        result.put("hasDeprecatedHooks", hasDeprecatedHooks);
+
         List<String> tanstackImports = new ArrayList<>();
         if (hasQueries) {
             tanstackImports.add("queryOptions");
@@ -397,9 +434,9 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
             Map<String, Object> member = member(keys, param);
             members.add(member);
             String access = "params." + member.get("key");
-            String set = "headers.set(" + TypeScriptSnippets.stringLiteral(param.baseName) + ", "
-                    + (param.isArray ? "Array.from(" + access + ").join(',')" : "String(" + access + ")") + ");";
-            headerLines.add(param.required ? set : "if (" + access + " !== undefined) { " + set + " }");
+            String value = param.isArray ? access + ".join(',')" : param.isString ? access : "String(" + access + ")";
+            String set = "headers.set(" + TypeScriptSnippets.stringLiteral(param.baseName) + ", " + value + ");";
+            headerLines.add(param.required ? set : "if (" + access + " !== undefined) {\n        " + set + "\n    }");
         }
         if (op.bodyParam != null) {
             Map<String, Object> body = new LinkedHashMap<>();
@@ -414,7 +451,7 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
         boolean allOptional = members.stream().noneMatch(member -> Boolean.FALSE.equals(member.get("optional")));
         TypeScriptSnippets.ResponseKind response = TypeScriptSnippets.ResponseKind.of(op);
         String returnType = switch (response) {
-            case VOID -> "void";
+            case VOID -> "undefined";
             case JSON, TEXT, BLOB -> op.returnType;
         };
 

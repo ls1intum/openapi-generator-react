@@ -1,8 +1,8 @@
 {{#isEnum}}
+
 export type {{classname}}{{enumName}} = {{#allowableValues}}{{#enumVars}}{{{value}}}{{^-last}} | {{/-last}}{{/enumVars}}{{/allowableValues}};
 
 export const {{classname}}{{enumName}} = {
 {{#allowableValues}}{{#enumVars}}    {{name}}: {{{value}}},
 {{/enumVars}}{{/allowableValues}}} as const;
-
 {{/isEnum}}
