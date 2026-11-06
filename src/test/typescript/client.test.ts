@@ -9,6 +9,7 @@ import {
     listProjects,
     withdrawRequest,
 } from '@generated/example/api';
+import { createRefreshingFetch } from './refreshing-fetch';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -159,5 +160,90 @@ describe('configureApi', () => {
         await getMe();
 
         expect(stub).toHaveBeenCalledOnce();
+    });
+});
+
+describe('the refreshing fetch of the README', () => {
+    const expired = () => new Response(JSON.stringify({ code: 'token_expired' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+    const person = { tumId: 'ge12abc', name: 'Ada', roles: [] };
+
+    /** A server that answers 401 until the sign-in was refreshed. */
+    function serverWithExpiredSignIn(isRefreshed: () => boolean) {
+        fetchMock.mockImplementation(() =>
+            Promise.resolve(
+                isRefreshed()
+                    ? new Response(JSON.stringify(person), { headers: { 'Content-Type': 'application/json' } })
+                    : expired(),
+            ),
+        );
+    }
+
+    it('refreshes once and repeats the call', async () => {
+        let refreshed = false;
+        const refresh = vi.fn(() => {
+            refreshed = true;
+            return Promise.resolve(true);
+        });
+        serverWithExpiredSignIn(() => refreshed);
+        configureApi({ fetch: createRefreshingFetch(refresh, fetchMock) });
+
+        await expect(getMe()).resolves.toEqual(person);
+
+        expect(refresh).toHaveBeenCalledOnce();
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('lets parallel calls share one refresh', async () => {
+        let refreshed = false;
+        const refresh = vi.fn(() => {
+            refreshed = true;
+            return Promise.resolve(true);
+        });
+        serverWithExpiredSignIn(() => refreshed);
+        configureApi({ fetch: createRefreshingFetch(refresh, fetchMock) });
+
+        await Promise.all([getMe(), getMe(), getMe()]);
+
+        expect(refresh).toHaveBeenCalledOnce();
+    });
+
+    it('repeats a call with a JSON body', async () => {
+        let refreshed = false;
+        fetchMock.mockImplementation(() =>
+            Promise.resolve(
+                refreshed
+                    ? new Response(JSON.stringify({ id: 'p', name: 'Atlas', organization: 'ls1intum', maxMonths: 12 }), { status: 201, headers: { 'Content-Type': 'application/json' } })
+                    : expired(),
+            ),
+        );
+        configureApi({
+            fetch: createRefreshingFetch(() => {
+                refreshed = true;
+                return Promise.resolve(true);
+            }, fetchMock),
+        });
+
+        await createProject({ body: { name: 'Atlas', organization: 'ls1intum' } });
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(sent().init.body).toBe(JSON.stringify({ name: 'Atlas', organization: 'ls1intum' }));
+    });
+
+    it('does not refresh for another 401', async () => {
+        const refresh = vi.fn(() => Promise.resolve(true));
+        json({ code: 'bad_credentials' }, { status: 401 });
+        configureApi({ fetch: createRefreshingFetch(refresh, fetchMock) });
+
+        await expect(getMe()).rejects.toMatchObject({ status: 401 });
+
+        expect(refresh).not.toHaveBeenCalled();
+    });
+
+    it('throws the 401 when the refresh fails', async () => {
+        serverWithExpiredSignIn(() => false);
+        configureApi({ fetch: createRefreshingFetch(() => Promise.resolve(false), fetchMock) });
+
+        await expect(getMe()).rejects.toBeInstanceOf(ApiError);
+        expect(fetchMock).toHaveBeenCalledOnce();
     });
 });

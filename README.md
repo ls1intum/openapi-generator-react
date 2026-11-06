@@ -257,6 +257,52 @@ sends each query parameter in its declared `style` and `explode`:
 - `null` and `undefined` are left out, dates go out as ISO 8601, and a value that has no OpenAPI query format, such as
   an array inside an array, throws instead of sending `[object Object]`.
 
+### Authentication
+
+The client has no login logic. `configureApi` takes three things that cover the usual setups:
+
+- `credentials: 'include'` for a session or token in `HttpOnly` cookies.
+- `headers`, called for every request, for a CSRF token read from a cookie or for a bearer token you already hold.
+- `fetch`, for everything else. Wrap `fetch` to refresh an expired sign-in: the wrapper below answers a `401` with the
+  code `token_expired` by calling your refresh function once, shared by parallel calls, and then repeats the call. The
+  client sends JSON bodies as strings, so repeating a call is safe. The refresh function must not use the wrapped `fetch`,
+  or an expired refresh token would refresh forever.
+
+```ts
+export function createRefreshingFetch(
+    refresh: () => Promise<boolean>,
+    base: typeof fetch = (input, init) => globalThis.fetch(input, init),
+): typeof fetch {
+    let refreshing: Promise<boolean> | undefined;
+
+    return async (input, init) => {
+        const response = await base(input, init);
+        if (response.status !== 401 || !(await isTokenExpired(response))) {
+            return response;
+        }
+        refreshing ??= refresh().finally(() => {
+            refreshing = undefined;
+        });
+        return (await refreshing) ? base(input, init) : response;
+    };
+}
+
+async function isTokenExpired(response: Response): Promise<boolean> {
+    const body: unknown = await response.clone().json().catch(() => undefined);
+    return typeof body === 'object' && body !== null && 'code' in body && body.code === 'token_expired';
+}
+```
+
+```ts
+configureApi({
+    credentials: 'include',
+    headers: () => ({ 'X-CSRF-Token': readCookie('csrf') }),
+    fetch: createRefreshingFetch(async () => (await fetch('/api/session/refresh', { method: 'POST' })).ok),
+});
+```
+
+The generator's tests run this code against a mocked `fetch`. Adjust how it recognises an expired sign-in to your server.
+
 ## Installation
 
 The generator is not on Maven Central yet. Until it is, build it from source with `./gradlew publishToMavenLocal` and
