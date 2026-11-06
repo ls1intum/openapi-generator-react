@@ -27,3 +27,4 @@
 - Short, imperative commit messages, e.g. "Add a mutation hook for PATCH".
 - A pull request that changes the generated output says which files of the example change and why.
 - Do not add AI attribution to commits or pull requests.
+- Do not write "frontend" or "backend", in code, documentation, commit messages or pull requests. Name the component instead: web app, client, server, application server. This follows the [terminology guideline of Artemis](https://github.com/ls1intum/Artemis/blob/4c05813a14f7d07a986d7f18b1763022179503f1/documentation/docs/developer/guidelines/terminology.mdx).

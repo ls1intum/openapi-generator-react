@@ -45,7 +45,7 @@ The facts about the other tools are those of their READMEs and of npm on 2026-11
 
 **Choose this one when**
 
-- **Your backend build is on the JVM.** The Gradle or Maven build of a Spring Boot project already runs OpenAPI
+- **Your server is built on the JVM.** The Gradle or Maven build of a Spring Boot project already runs OpenAPI
   Generator, so the client is regenerated in the same step as the server's OpenAPI document, and nobody needs a Node.js
   toolchain for the generation. A CI check can fail when the checked-in client differs from a fresh one.
 - **You want the output to be small and readable.** Per tag, one file of plain functions and one of hooks; per model,
@@ -319,7 +319,9 @@ java -cp openapi-generator-react-0.1.0.jar:openapi-generator-cli-7.21.0.jar \
     -o ./src/api-client
 ```
 
-The client needs `react` (19) and `@tanstack/react-query` (5) in the project that contains it.
+The client needs `react` (19) and `@tanstack/react-query` (5) in the project that contains it. TanStack Query is a separate
+npm package that the generator does not ship, and only the hooks files import it: with `generateHooks=false` the
+generator writes the plain functions only, and the client needs neither TanStack Query nor React.
 
 ### Keeping the client in sync
 
