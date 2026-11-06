@@ -24,6 +24,9 @@ class GeneratedCodeCompilesTest {
             "defaults", configurator -> { },
             "model-affixes", configurator -> configurator.addAdditionalProperty("modelNamePrefix", "Api")
                     .addAdditionalProperty("modelNameSuffix", "Model"),
+            "ts-extensions", configurator -> configurator.addAdditionalProperty("importExtension", "ts"),
+            "js-extensions", configurator -> configurator.addAdditionalProperty("importExtension", "js"),
+            "functions-only", configurator -> configurator.addAdditionalProperty("generateHooks", "false"),
             "use-client", configurator -> configurator.addAdditionalProperty("useClientDirective", "true"));
 
     @TempDir
@@ -42,6 +45,8 @@ class GeneratedCodeCompilesTest {
         }
         // How an application uses the generated example, compiled and linted with it.
         Files.copy(Generation.TYPESCRIPT.resolve("usage.tsx"), tempDir.resolve("example/defaults/usage.tsx"));
+        // What the types let a consumer do with a union.
+        Files.copy(Generation.TYPESCRIPT.resolve("narrowing.ts"), tempDir.resolve("responses/defaults/narrowing.ts"));
         Generation.linkNodeModules(tempDir);
         Files.writeString(tempDir.resolve("tsconfig.json"), """
                 { "extends": "%s", "include": ["**/*.ts", "**/*.tsx"], "exclude": ["node_modules"] }

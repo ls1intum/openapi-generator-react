@@ -25,7 +25,7 @@ export function configureApi(changes: Partial<ApiConfig>): void {
 
 /** Per-call options of every operation function. */
 export interface RequestOptions {
-    /** Aborts the request; the query hooks pass the signal of TanStack Query. */
+    /** Aborts the request. */
     readonly signal?: AbortSignal;
     /** Headers of this call; they win over the configured headers. */
     readonly headers?: HeadersInit;

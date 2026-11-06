@@ -1,12 +1,12 @@
 {{>licenseInfo}}
 {{#apiImports}}
-import type { {{classname}} } from '../{{modelPackageName}}/{{filename}}';
+import type { {{classname}} } from '../{{modelPackageName}}/{{filename}}{{importExt}}';
 {{/apiImports}}
-import { request } from './client';
-import type { RequestOptions } from './client';
+import { request } from './client{{importExt}}';
+import type { RequestOptions } from './client{{importExt}}';
 {{#operations}}
 {{#hasQueryParams}}
-import { appendQueryParam } from './query-params';
+import { appendQueryParam } from './query-params{{importExt}}';
 {{/hasQueryParams}}
 
 {{#operation}}

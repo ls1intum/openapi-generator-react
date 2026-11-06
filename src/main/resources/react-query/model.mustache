@@ -3,7 +3,7 @@
 {{#model}}
 {{#vendorExtensions.x-has-imports}}
 {{#vendorExtensions.x-imports}}
-import type { {{classname}} } from './{{filename}}';
+import type { {{classname}} } from './{{filename}}{{importExt}}';
 {{/vendorExtensions.x-imports}}
 
 {{/vendorExtensions.x-has-imports}}
@@ -17,11 +17,11 @@ export type {{classname}} = {{{vendorExtensions.x-one-of-type}}};
 {{/vendorExtensions.x-is-one-of}}
 {{^vendorExtensions.x-is-one-of}}
 {{#isEnum}}
-export type {{classname}} = {{#allowableValues}}{{#enumVars}}{{{value}}}{{^-last}} | {{/-last}}{{/enumVars}}{{/allowableValues}};
-
 export const {{classname}} = {
 {{#allowableValues}}{{#enumVars}}    {{name}}: {{{value}}},
 {{/enumVars}}{{/allowableValues}}} as const;
+
+export type {{classname}} = (typeof {{classname}})[keyof typeof {{classname}}];
 {{/isEnum}}
 {{^isEnum}}
 {{#hasVars}}

@@ -1,13 +1,17 @@
 {{>licenseInfo}}
-export * from './client';
-export type * from './hook-options';
+export * from './client{{importExt}}';
+{{#generateHooks}}
+export type * from './hook-options{{importExt}}';
+{{/generateHooks}}
 {{#apiInfo}}
 {{#apis}}
-export * from './{{classFilename}}-api';
+export * from './{{classFilename}}-api{{importExt}}';
+{{#generateHooks}}
 {{#operations}}
 {{#hasHooks}}
-export * from './{{classFilename}}-hooks';
+export * from './{{classFilename}}-hooks{{importExt}}';
 {{/hasHooks}}
 {{/operations}}
+{{/generateHooks}}
 {{/apis}}
 {{/apiInfo}}

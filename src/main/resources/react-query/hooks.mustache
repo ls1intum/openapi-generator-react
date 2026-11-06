@@ -10,14 +10,14 @@ import { {{{tanstackImports}}} } from '@tanstack/react-query';
 import type { SkipToken } from '@tanstack/react-query';
 {{/hasSkippableQueries}}
 {{#hookImports}}
-import type { {{classname}} } from '../{{modelPackageName}}/{{filename}}';
+import type { {{classname}} } from '../{{modelPackageName}}/{{filename}}{{importExt}}';
 {{/hookImports}}
-import { {{{hookFunctions}}} } from './{{apiFileName}}-api';
+import { {{{hookFunctions}}} } from './{{apiFileName}}-api{{importExt}}';
 {{#hasHookParamTypes}}
-import type { {{{hookParamTypes}}} } from './{{apiFileName}}-api';
+import type { {{{hookParamTypes}}} } from './{{apiFileName}}-api{{importExt}}';
 {{/hasHookParamTypes}}
-import type { ApiError } from './client';
-import type { {{{hookOptionNames}}} } from './hook-options';
+import type { ApiError } from './client{{importExt}}';
+import type { {{{hookOptionNames}}} } from './hook-options{{importExt}}';
 {{#operations}}
 {{#hasQueries}}
 

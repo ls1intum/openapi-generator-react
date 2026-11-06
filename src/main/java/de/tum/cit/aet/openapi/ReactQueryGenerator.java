@@ -73,6 +73,11 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
     /** Config option: start the hooks files with {@code 'use client'}, for frameworks with React Server Components. */
     public static final String USE_CLIENT_DIRECTIVE = "useClientDirective";
 
+    /** Config option: whether to generate the TanStack Query hooks next to the functions. */
+    public static final String GENERATE_HOOKS = "generateHooks";
+    /** Config option: the file extension of relative imports, {@code none}, {@code ts} or {@code js}. */
+    public static final String IMPORT_EXTENSION = "importExtension";
+
     /** The key of the request body in a {@code params} object. */
     private static final String BODY_KEY = "body";
 
@@ -110,6 +115,12 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
         cliOptions.add(CliOption.newBoolean(USE_CLIENT_DIRECTIVE,
                 "Start the hooks files with the 'use client' directive, for React Server Components", false));
 
+        cliOptions.add(CliOption.newBoolean(GENERATE_HOOKS,
+                "Generate the TanStack Query hooks; without them only the plain functions are generated", true));
+        cliOptions.add(new CliOption(IMPORT_EXTENSION,
+                "The file extension of relative imports: none, ts (for Node's type stripping and allowImportingTsExtensions) or js (for nodenext)")
+                .defaultValue("none"));
+
         // The parent offers an option for each of these; the generated code does not use them.
         cliOptions.removeIf(option -> Set.of("supportsES6", "npmName", "npmVersion", "snapshot").contains(option.getOpt()));
     }
@@ -133,12 +144,28 @@ public class ReactQueryGenerator extends AbstractTypeScriptClientCodegen {
     public void processOpts() {
         super.processOpts();
 
+        boolean generateHooks = Boolean.parseBoolean(String.valueOf(additionalProperties.getOrDefault(GENERATE_HOOKS, "true")));
+        String importExtension = String.valueOf(additionalProperties.getOrDefault(IMPORT_EXTENSION, "none"));
+        if (!Set.of("none", "ts", "js").contains(importExtension)) {
+            throw new IllegalArgumentException(IMPORT_EXTENSION + " is " + importExtension + ", but it has to be none, ts or js");
+        }
+        String extension = "none".equals(importExtension) ? "" : "." + importExtension;
+        additionalProperties.put(GENERATE_HOOKS, generateHooks);
+        additionalProperties.put("importExt", extension);
+        // A directory import needs its index file once the imports carry an extension.
+        additionalProperties.put("indexExt", extension.isEmpty() ? "" : "/index" + extension);
+        if (!generateHooks) {
+            apiTemplateFiles.remove("hooks.mustache");
+        }
+
         supportingFiles.clear();
         String api = apiPackage().replace('.', File.separatorChar);
         String models = modelPackage().replace('.', File.separatorChar);
         supportingFiles.add(new SupportingFile("client.mustache", api, "client.ts"));
         supportingFiles.add(new SupportingFile("query-params.mustache", api, "query-params.ts"));
-        supportingFiles.add(new SupportingFile("hook-options.mustache", api, "hook-options.ts"));
+        if (generateHooks) {
+            supportingFiles.add(new SupportingFile("hook-options.mustache", api, "hook-options.ts"));
+        }
         supportingFiles.add(new SupportingFile("api-index.mustache", api, "index.ts"));
         supportingFiles.add(new SupportingFile("models-index.mustache", models, "index.ts"));
         supportingFiles.add(new SupportingFile("root-index.mustache", "", "index.ts"));
